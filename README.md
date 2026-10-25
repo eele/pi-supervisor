@@ -28,6 +28,19 @@ The Startup row disables the old scripts (rename to `*.disabled`):
 both stacks at once — the bridge/hub ports (60022/60000) are single-instance
 by bind.
 
+## Building & running
+
+Use the **release** exe — a debug exe (and a release built without the
+`custom-protocol` feature) loads `devUrl` and shows "localhost refused to
+connect" unless `npm run dev` is running:
+
+```bash
+npm run tauri:build                          # recommended (adds the feature)
+# or manually:
+npm run build && cd src-tauri && cargo build --release --features custom-protocol
+# → src-tauri/target/release/pi-supervisor.exe (frontend embedded)
+```
+
 ## Development
 
 ```bash
@@ -35,6 +48,8 @@ npm install
 npm run dev            # vite + tauri dev window
 npx svelte-check       # type/contract gate
 npm run test:e2e       # Playwright mock E2E (UI contract)
+npm run test:e2e:real  # real-UI E2E: boots the release exe, drives its
+                       # WebView2 over CDP against live host state
 cd src-tauri && cargo test   # parser/protocol unit tests
 ```
 

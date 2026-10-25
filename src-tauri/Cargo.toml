@@ -8,6 +8,12 @@ edition = "2021"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+# Without this feature a release exe still loads build.devUrl (5173) and
+# shows "localhost refused to connect". `tauri build` adds it automatically;
+# plain `cargo build --release` must be given it explicitly.
+custom-protocol = ["tauri/custom-protocol"]
+
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }

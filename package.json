@@ -12,7 +12,8 @@
     "tauri:build": "tauri build",
     "test:e2e": "playwright test -c tests/playwright.config.ts",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json",
-    "package:win": "tauri build"
+    "package:win": "tauri build",
+    "test:e2e:real": "playwright test -c tests/playwright.real.config.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"
