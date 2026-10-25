@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="380" viewBox="0 0 720 380" font-family="Lucida Grande, Segoe UI, Helvetica Neue, sans-serif">
+  <defs>
+    <linearGradient id="taskbar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2f36"/><stop offset="1" stop-color="#1b1e23"/>
+    </linearGradient>
+    <linearGradient id="btnRed" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a70"/><stop offset="0.5" stop-color="#e0362c"/><stop offset="1" stop-color="#b3241c"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfdfd"/><stop offset="1" stop-color="#d6d6d6"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="720" height="380" fill="#b8bcc2"/>
+
+  <!-- taskbar with tray icon -->
+  <rect x="0" y="340" width="720" height="40" fill="url(#taskbar)"/>
+  <rect x="600" y="348" width="24" height="24" rx="4" fill="#3a3f47"/>
+  <circle cx="612" cy="360" r="7" fill="none" stroke="#28c840" stroke-width="2.5"/>
+  <circle cx="612" cy="360" r="2.2" fill="#28c840"/>
+
+  <!-- tray right-click menu -->
+  <g filter="url(#soft)">
+    <rect x="560" y="250" width="150" height="84" rx="6" fill="#f6f6f6" stroke="#9d9d9d"/>
+  </g>
+  <rect x="566" y="268" width="138" height="26" rx="4" fill="#3876d6"/>
+  <text x="580" y="286" font-size="12" fill="#ffffff">Open</text>
+  <text x="580" y="322" font-size="12" fill="#1d1d1f">Exit</text>
+  <line x1="566" y1="304" x2="704" y2="304" stroke="#c9c9c9"/>
+  <text x="612" y="242" text-anchor="middle" font-size="10" fill="#5f5f64">left-click / double-click restores the window</text>
+
+  <!-- Recreate confirm dialog (sandbox name fixed: no rename controls) -->
+  <g filter="url(#soft)">
+    <rect x="40" y="60" width="440" height="200" rx="8" fill="#ececec" stroke="#9d9d9d"/>
+  </g>
+  <circle cx="64" cy="84" r="7" fill="#ff5f57" stroke="#e0443e"/>
+  <circle cx="86" cy="84" r="7" fill="#febc2e" stroke="#d89e23"/>
+  <circle cx="108" cy="84" r="7" fill="#28c840" stroke="#1aab29"/>
+  <text x="260" y="90" text-anchor="middle" font-size="13" font-weight="bold" fill="#4d4d4d">Recreate Sandbox</text>
+
+  <text x="64" y="124" font-size="13" font-weight="bold" fill="#1d1d1f">Recreate "pi-ai" from the latest zot kit?</text>
+  <text x="64" y="146" font-size="11" fill="#5f5f64">Removed and recreated detached (sbx run -d) from</text>
+  <text x="64" y="162" font-size="11" fill="#5f5f64">zot.byte.art/blackbox/pi-kit (newest stamp), then both</text>
+  <text x="64" y="178" font-size="11" fill="#5f5f64">runtime tokens are re-pushed automatically.</text>
+
+  <rect x="240" y="200" width="100" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="290" y="218" text-anchor="middle" font-size="11" fill="#1d1d1f">Cancel</text>
+  <rect x="352" y="200" width="106" height="28" rx="5" fill="url(#btnRed)" stroke="#b3241c"/>
+  <text x="405" y="218" text-anchor="middle" font-size="11" fill="#ffffff">Recreate</text>
+
+  <!-- progress state note -->
+  <text x="40" y="298" font-size="11" fill="#5f5f64">During rebuild the button area shows a step ticker:</text>
+  <rect x="40" y="306" width="440" height="24" rx="5" fill="#ffffff" stroke="#c9c9c9"/>
+  <text x="56" y="322" font-size="11" fill="#1d1d1f">▸ rm · resolve latest kit · run -d · wait ready · push tokens ✔</text>
+</svg>

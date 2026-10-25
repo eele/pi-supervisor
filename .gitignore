@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+release/
+src-tauri/target/
+src-tauri/gen/
+
+# Test artifacts
+playwright-report/
+test-results/
+coverage/
+
+# Logs
+*.log
+packager.log
+
+# Caches & temp files
+.vite/
+.svelte-kit/
+*.local
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Runtime config (written next to the exe / project root)
+config.json
+config.json.tmp
+
+# Screenshots / artifacts
+release-screenshot.png
+screenshot.png
+screenshot.png

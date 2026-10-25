@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="700" viewBox="0 0 720 700" font-family="Lucida Grande, Segoe UI, Helvetica Neue, sans-serif">
+  <defs>
+    <linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/><stop offset="1" stop-color="#ececec"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfdfd"/><stop offset="1" stop-color="#d6d6d6"/>
+    </linearGradient>
+    <linearGradient id="btnBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ec1ff"/><stop offset="0.5" stop-color="#3876d6"/><stop offset="1" stop-color="#1e5fc0"/>
+    </linearGradient>
+    <filter id="winShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="720" height="700" fill="#b8bcc2"/>
+
+  <!-- window -->
+  <g filter="url(#winShadow)">
+    <rect x="36" y="28" width="648" height="640" rx="8" fill="#ececec" stroke="#9d9d9d"/>
+  </g>
+
+  <!-- title bar (no bottom separator) -->
+  <rect x="37" y="29" width="646" height="46" rx="8" fill="url(#titlebar)"/>
+  <text x="360" y="58" text-anchor="middle" font-size="13" font-weight="bold" fill="#4d4d4d">Pi Supervisor</text>
+  <circle cx="60" cy="52" r="7" fill="#ff5f57" stroke="#e0443e"/>
+  <circle cx="82" cy="52" r="7" fill="#febc2e" stroke="#d89e23"/>
+  <circle cx="104" cy="52" r="7" fill="#28c840" stroke="#1aab29"/>
+
+  <!-- ─── tab card ─── -->
+  <!-- unselected tabs (bottom edges hidden behind the content card) -->
+  <rect x="166" y="96" width="150" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="241" y="114" text-anchor="middle" font-size="11" fill="#4d4d4d">Background Services</text>
+  <rect x="320" y="96" width="90" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="365" y="114" text-anchor="middle" font-size="11" fill="#4d4d4d">Sandbox</text>
+
+  <!-- content card: Sessions tab active, fills remaining height -->
+  <rect x="52" y="120" width="616" height="440" rx="6" fill="#ffffff" stroke="#c9c9c9"/>
+
+  <!-- selected tab (drawn over the card edge: seamless join, open bottom) -->
+  <path d="M52 122 V94 Q52 90 56 90 H158 Q162 90 162 94 V122" fill="#ffffff" stroke="#c9c9c9"/>
+  <text x="107" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#1d1d1f">Sessions</text>
+  <text x="428" y="114" font-size="10" fill="#8e8e93">click a tab to switch module ←/→</text>
+
+  <!-- session rows: 4 live + 6 dead, row height 36, count adapts to window height -->
+  <!-- row 1 -->
+  <text x="72" y="156" font-size="11" fill="#1d1d1f" font-family="SFMono-Regular, Consolas, monospace">socket_20261025.150210.447</text>
+  <rect x="330" y="142" width="42" height="17" rx="8" fill="#28c840"/>
+  <text x="351" y="154" text-anchor="middle" font-size="9" fill="#ffffff">live</text>
+  <rect x="566" y="140" width="86" height="20" rx="5" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="609" y="154" text-anchor="middle" font-size="10" fill="#ffffff">Attach</text>
+  <!-- row 2 -->
+  <text x="72" y="192" font-size="11" fill="#1d1d1f" font-family="SFMono-Regular, Consolas, monospace">socket_20261025.143955.208</text>
+  <rect x="330" y="178" width="42" height="17" rx="8" fill="#28c840"/>
+  <text x="351" y="190" text-anchor="middle" font-size="9" fill="#ffffff">live</text>
+  <rect x="566" y="176" width="86" height="20" rx="5" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="609" y="190" text-anchor="middle" font-size="10" fill="#ffffff">Attach</text>
+  <!-- row 3 -->
+  <text x="72" y="228" font-size="11" fill="#1d1d1f" font-family="SFMono-Regular, Consolas, monospace">socket_20261025.091612.863</text>
+  <rect x="330" y="214" width="42" height="17" rx="8" fill="#28c840"/>
+  <text x="351" y="226" text-anchor="middle" font-size="9" fill="#ffffff">live</text>
+  <rect x="566" y="212" width="86" height="20" rx="5" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="609" y="226" text-anchor="middle" font-size="10" fill="#ffffff">Attach</text>
+  <!-- row 4 -->
+  <text x="72" y="264" font-size="11" fill="#1d1d1f" font-family="SFMono-Regular, Consolas, monospace">socket_20261025.081240.115</text>
+  <rect x="330" y="250" width="42" height="17" rx="8" fill="#28c840"/>
+  <text x="351" y="262" text-anchor="middle" font-size="9" fill="#ffffff">live</text>
+  <rect x="566" y="248" width="86" height="20" rx="5" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="609" y="262" text-anchor="middle" font-size="10" fill="#ffffff">Attach</text>
+  <!-- row 5 (dead) -->
+  <text x="72" y="300" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261024.221503.102</text>
+  <text x="330" y="300" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="284" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="298" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- row 6 (dead) -->
+  <text x="72" y="336" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261024.180944.771</text>
+  <text x="330" y="336" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="320" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="334" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- row 7 (dead) -->
+  <text x="72" y="372" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261024.113327.429</text>
+  <text x="330" y="372" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="356" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="370" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- row 8 (dead) -->
+  <text x="72" y="408" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261024.090811.662</text>
+  <text x="330" y="408" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="392" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="406" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- row 9 (dead) -->
+  <text x="72" y="444" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261023.223019.540</text>
+  <text x="330" y="444" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="428" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="442" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- row 10 (dead, partly clipped hint: more below) -->
+  <text x="72" y="480" font-size="11" fill="#8e8e93" font-family="SFMono-Regular, Consolas, monospace">socket_20261023.174522.388</text>
+  <text x="330" y="480" font-size="10" fill="#8e8e93">dead (stale socket)</text>
+  <rect x="566" y="464" width="86" height="20" rx="5" fill="url(#btn)" stroke="#c9c9c9"/>
+  <text x="609" y="478" text-anchor="middle" font-size="10" fill="#b0b0b4">Attach</text>
+  <!-- fading remainder: more sessions below the fold -->
+  <rect x="53" y="492" width="614" height="67" fill="#ffffff" opacity="0.85"/>
+  <text x="72" y="516" font-size="11" fill="#c8c8cc" font-family="SFMono-Regular, Consolas, monospace">socket_20261023.102841.207</text>
+  <text x="330" y="516" font-size="10" fill="#c8c8cc">dead (stale socket)</text>
+  <text x="72" y="544" font-size="11" fill="#e4e4e8" font-family="SFMono-Regular, Consolas, monospace">socket_20261022.201530.916</text>
+
+  <!-- macOS overlay scrollbar: thumb ≈ visible/total of a ~14-session list -->
+  <rect x="654" y="126" width="5" height="300" rx="2.5" fill="#8e8e93" opacity="0.65"/>
+
+  <!-- auto-fit note -->
+  <text x="56" y="582" font-size="10" fill="#8e8e93">row count adapts to window height (list fills the tab page) · Startup row stays fixed below the tab card</text>
+
+  <!-- Startup row (outside tab scope, always visible) + slider switch -->
+  <text x="60" y="608" font-size="11" fill="#5f5f64">Startup: launch this app at logon (replaces legacy Startup entries)</text>
+  <rect x="608" y="594" width="52" height="22" rx="11" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="621" y="609" text-anchor="middle" font-size="9" font-weight="bold" fill="#ffffff" stroke="#1e5fc0" stroke-width="0.35">ON</text>
+  <circle cx="648" cy="605" r="9" fill="#fdfdfd" stroke="#9d9d9d"/>
+  <circle cx="648" cy="605" r="6" fill="url(#titlebar)"/>
+
+  <!-- status bar -->
+  <rect x="37" y="627" width="646" height="40" fill="url(#titlebar)"/>
+  <line x1="37" y1="627" x2="683" y2="627" stroke="#adadad"/>
+  <text x="60" y="651" font-size="11" fill="#5f5f64">All services healthy · pi-ai detached · 4 live sessions · refresh 3 s</text>
+</svg>
