@@ -94,6 +94,22 @@ test("app shell renders in the real window", async () => {
   await expect(page.getByTestId("status")).toBeVisible();
 });
 
+test("tab panels are full-width (no neighbour bleed into the active tab)", async () => {
+  // Regression: the 300% track must not flex-shrink — every panel must be
+  // exactly as wide as the visible tab-content viewport.
+  const dims = await page.evaluate(() => {
+    const content = document.querySelector(".tab-content")!;
+    const panels = [...document.querySelectorAll(".tab-panel")].map(
+      (p) => p.getBoundingClientRect().width
+    );
+    return { viewport: content.clientWidth, panels };
+  });
+  expect(dims.panels.length).toBe(3);
+  for (const w of dims.panels) {
+    expect(Math.abs(w - dims.viewport)).toBeLessThanOrEqual(1);
+  }
+});
+
 test("sandbox tab shows the live pi-ai state", async () => {
   await page.getByTestId("tab-sandbox").click();
   // Prober polls every 3 s; pi-ai is running on this host.

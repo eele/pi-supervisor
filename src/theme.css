@@ -562,6 +562,10 @@ body {
 /* horizontally sliding track of 3 panels (150ms ease) */
 .tab-track {
   display: flex;
+  /* flex-shrink:0 is load-bearing: .tab-content is a flex container, so a
+     shrinkable 300% item collapses to 100% and every panel becomes a third
+     of the viewport (neighbour panels bleed into the active tab). */
+  flex: none;
   width: 300%;
   height: 100%;
   transition: transform 150ms ease;
