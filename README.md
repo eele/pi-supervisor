@@ -69,7 +69,14 @@ cd src-tauri && cargo test   # parser/protocol unit tests
 
 Networking on this LAN: cargo needs
 `HTTP(S)_PROXY=http://192.168.66.7:8118`, and `zot.byte.art` must stay in
-`NO_PROXY` (the app injects that for `sbx`/`reg`/`taskkill` children).
+`NO_PROXY` (the app injects that for `sbx`/`reg`/`taskkill` children; zot
+itself is HTTPS-only and fetched directly).
+
+Fresh machines ship `sbx` with `kit.allowedSources=["docker.io/"]`, so the
+zot kit is rejected by **client-side policy** on the first Recreate. The
+recreate flow self-heals this: on the allowlist error it merges the kit's
+publisher prefix (e.g. `zot.byte.art/blackbox/`) into
+`sbx settings kit.allowedSources` and retries once.
 
 ## Layout
 

@@ -150,11 +150,28 @@ fn run_recreate(st: &Arc<AppState>) {
     // 3. detached run: permanent residency (the -d flag is what makes a
     //    separate keep-alive daemon unnecessary).
     advance(st, 2, true);
-    if let Err(e) = util::sbx(
-        &["run", "-d", "--name", &name, &kit, &cfg.mount_path],
-        180_000,
-    ) {
-        return fail(st, 2, format!("sbx run failed: {e}"));
+    let run_args = [
+        "run",
+        "-d",
+        "--name",
+        name.as_str(),
+        kit.as_str(),
+        cfg.mount_path.as_str(),
+    ];
+    if let Err(e) = util::sbx(&run_args, 180_000) {
+        // Fresh machines ship kit.allowedSources=["docker.io/"] only, so the
+        // zot kit is rejected by CLIENT-SIDE policy. Self-heal exactly the way
+        // the error message suggests (merge the publisher prefix in) and
+        // retry once; any other failure is reported as-is.
+        if !e.to_lowercase().contains("allowlist") {
+            return fail(st, 2, format!("sbx run failed: {e}"));
+        }
+        eprintln!("[sandbox] kit source not allowlisted — updating kit.allowedSources");
+        let retried = ensure_kit_allowed(&cfg.zot_repo)
+            .and_then(|()| util::sbx(&run_args, 180_000));
+        if let Err(e2) = retried {
+            return fail(st, 2, format!("sbx run failed: {e2}"));
+        }
     }
     advance(st, 2, false);
 
@@ -185,6 +202,35 @@ fn run_recreate(st: &Arc<AppState>) {
         *st.sandbox.lock().unwrap() = info;
     }
     st.recreate.lock().unwrap().active = false;
+}
+
+/// Publisher prefix for an allowlist entry: repo minus its last segment
+/// ("zot.byte.art/blackbox/pi-kit" → "zot.byte.art/blackbox/" — exactly what
+/// the sbx error message itself proposes).
+fn kit_allow_prefix(repo: &str) -> String {
+    match repo.rfind('/') {
+        Some(i) => repo[..i + 1].to_string(),
+        None => format!("{repo}/"),
+    }
+}
+
+/// Merge the kit's publisher prefix into `sbx` settings kit.allowedSources
+/// (idempotent: no-op when an existing entry — or "*" — already covers it).
+fn ensure_kit_allowed(repo: &str) -> Result<(), String> {
+    let prefix = kit_allow_prefix(repo);
+    let cur = util::sbx(&["settings", "get", "kit.allowedSources"], 15_000)?;
+    let mut list: Vec<String> =
+        serde_json::from_str(cur.trim()).unwrap_or_default();
+    if list.iter().any(|s| s == "*" || repo.starts_with(s.as_str())) {
+        return Ok(());
+    }
+    list.push(prefix);
+    let json = serde_json::to_string(&list).map_err(|e| e.to_string())?;
+    util::sbx(
+        &["settings", "set", "kit.allowedSources", &json],
+        15_000,
+    )
+    .map(|_| ())
 }
 
 /// Periodic prober thread: refresh the card every 3 s (cheap local CLI).
@@ -224,6 +270,16 @@ mod tests {
         assert_eq!(stopped.state, SandboxState::Stopped);
         let missing = parse_inspect("error: sandbox 'no-such-box' not found\n  try: sbx ls").unwrap();
         assert_eq!(missing.state, SandboxState::NotCreated);
+    }
+
+    #[test]
+    fn allow_prefix_is_the_publisher_dir() {
+        assert_eq!(
+            kit_allow_prefix("zot.byte.art/blackbox/pi-kit"),
+            "zot.byte.art/blackbox/"
+        );
+        assert_eq!(kit_allow_prefix("host/repo"), "host/");
+        assert_eq!(kit_allow_prefix("flat"), "flat/");
     }
 
     #[test]
