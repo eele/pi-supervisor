@@ -50,6 +50,7 @@ const MOCK: MockState = {
     state: "detached",
     kit: "zot.byte.art/blackbox/pi-kit:20261025.150332.857",
     mount_path: "C:\\Users\\ele\\Tea",
+    kit_repo: "zot.byte.art/blackbox/pi-kit",
   },
   sessions: {
     has_data: true,

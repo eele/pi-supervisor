@@ -61,6 +61,7 @@ impl AppState {
             stop: None,
             handle: None,
         };
+        let kit_repo = cfg.zot_repo.clone();
         Arc::new(Self {
             cfg: Mutex::new(cfg),
             services: Mutex::new(vec![
@@ -81,6 +82,7 @@ impl AppState {
                 state: crate::sandbox::SandboxState::NotCreated,
                 kit: String::new(),
                 mount_path: String::new(),
+                kit_repo,
             }),
             sessions: Mutex::new(SessionsSnapshot::default()),
             recreate: Mutex::new(RecreateState {

@@ -55,6 +55,11 @@ pub struct AppConfig {
     pub sandbox_name: String,
     /// Host workspace bind-mounted by `sbx run -d` (shown as "Mount path").
     pub mount_path: String,
+    /// Kit image repo on the zot registry, host + path WITHOUT tag
+    /// ("zot.byte.art/blackbox/pi-kit"). Single source of truth: drives the
+    /// tags/list URL, the `sbx run` reference, the sbx NO_PROXY entry, and
+    /// the Recreate dialog copy.
+    pub zot_repo: String,
     /// Last-resort kit tag when zot's tags/list is unreachable ("" = none).
     pub kit_fallback_tag: String,
     pub services: ServiceIntent,
@@ -66,6 +71,7 @@ impl Default for AppConfig {
         Self {
             sandbox_name: "pi-ai".into(),
             mount_path: "C:\\Users\\ele\\Tea".into(),
+            zot_repo: "zot.byte.art/blackbox/pi-kit".into(),
             kit_fallback_tag: String::new(),
             services: ServiceIntent::default(),
             window: None,
@@ -203,6 +209,14 @@ mod tests {
         let cfg: AppConfig = serde_json::from_str(r#"{"mount_path":"D:\\x"}"#).unwrap();
         assert_eq!(cfg.mount_path, "D:\\x");
         assert_eq!(cfg.sandbox_name, "pi-ai");
+        assert_eq!(cfg.zot_repo, "zot.byte.art/blackbox/pi-kit");
         assert!(cfg.services.bridge);
+    }
+
+    #[test]
+    fn zot_repo_override_round_trips() {
+        let cfg: AppConfig =
+            serde_json::from_str(r#"{"zot_repo":"registry.internal:5000/kit/pi"}"#).unwrap();
+        assert_eq!(cfg.zot_repo, "registry.internal:5000/kit/pi");
     }
 }

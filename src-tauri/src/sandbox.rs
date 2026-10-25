@@ -24,6 +24,9 @@ pub struct SandboxInfo {
     pub state: SandboxState,
     pub kit: String,
     pub mount_path: String,
+    /// Configured kit repo (config.json `zot_repo`, no tag) — lets the UI
+    /// describe the Recreate source without hardcoding the registry.
+    pub kit_repo: String,
 }
 
 pub fn probe(name: &str) -> Option<SandboxInfo> {
@@ -48,6 +51,7 @@ pub fn parse_inspect(text: &str) -> Option<SandboxInfo> {
             state: SandboxState::NotCreated,
             kit: String::new(),
             mount_path: String::new(),
+            kit_repo: String::new(),
         });
     }
     let field = |key: &str| -> Option<String> {
@@ -66,6 +70,7 @@ pub fn parse_inspect(text: &str) -> Option<SandboxInfo> {
         state,
         kit: field("Kits:").unwrap_or_default(),
         mount_path: field("Workspace:").unwrap_or_default(),
+        kit_repo: String::new(), // stamped by the caller that owns the config
     })
 }
 
@@ -114,6 +119,7 @@ fn run_recreate(st: &Arc<AppState>) {
 
     let cfg = st.cfg.lock().unwrap().clone();
     let name = cfg.sandbox_name.clone();
+    let kit_repo = cfg.zot_repo.clone();
 
     // 1. rm — tolerate "not found" (pure-create path from not-created).
     advance(st, 0, true);
@@ -126,7 +132,7 @@ fn run_recreate(st: &Arc<AppState>) {
 
     // 2. resolve latest kit (zot, else config fallback).
     advance(st, 1, true);
-    let kit = match zot::latest_kit(&cfg.kit_fallback_tag) {
+    let kit = match zot::latest_kit(&cfg.zot_repo, &cfg.kit_fallback_tag) {
         Ok(k) => k,
         Err(e) => return fail(st, 1, e),
     };
@@ -174,7 +180,8 @@ fn run_recreate(st: &Arc<AppState>) {
     advance(st, 4, false);
 
     // Refresh the visible sandbox card, then done.
-    if let Some(info) = probe(&name) {
+    if let Some(mut info) = probe(&name) {
+        info.kit_repo = kit_repo;
         *st.sandbox.lock().unwrap() = info;
     }
     st.recreate.lock().unwrap().active = false;
@@ -184,8 +191,12 @@ fn run_recreate(st: &Arc<AppState>) {
 pub fn spawn_prober(st: &Arc<AppState>) {
     let st = st.clone();
     std::thread::spawn(move || loop {
-        let name = st.cfg.lock().unwrap().sandbox_name.clone();
-        if let Some(info) = probe(&name) {
+        let (name, kit_repo) = {
+            let cfg = st.cfg.lock().unwrap();
+            (cfg.sandbox_name.clone(), cfg.zot_repo.clone())
+        };
+        if let Some(mut info) = probe(&name) {
+            info.kit_repo = kit_repo;
             *st.sandbox.lock().unwrap() = info;
         }
         std::thread::sleep(std::time::Duration::from_millis(3_000));

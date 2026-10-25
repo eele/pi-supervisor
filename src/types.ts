@@ -20,6 +20,8 @@ export interface SandboxInfo {
   kit: string;
   /** Host mount path shown as "Mount path" (e.g. `C:\\Users\\ele\\Tea`). */
   mount_path: string;
+  /** Configured kit repo without tag (config.json `zot_repo`). */
+  kit_repo: string;
 }
 
 export type StepStatus = "pending" | "active" | "done" | "error";

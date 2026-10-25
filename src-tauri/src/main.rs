@@ -195,6 +195,8 @@ fn restore_window_state(app: &AppHandle) {
 
 fn main() {
     let st = AppState::new(config::load());
+    // sbx children must bypass the proxy for the configured registry host.
+    util::configure_no_proxy(&st.cfg.lock().unwrap().zot_repo);
 
     tauri::Builder::default()
         .manage(st.clone())

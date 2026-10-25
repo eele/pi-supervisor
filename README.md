@@ -15,7 +15,21 @@ bridge, notify server) and adds sandbox lifecycle control.
 | **Sessions** | 3 s poll of `pi-dtach -l` inside the sandbox; Attach opens a real terminal (`wt.exe`, falls back to `cmd /k`). |
 | **Tokens** | `agent-bridge-token` + `pi-hub-token` pushed into the sandbox over `sbx exec` **stdin only** (never argv, never logged), installed `0600`. |
 
-Service start/stop intent and window geometry persist in `config.json`.
+Service start/stop intent and window geometry persist in `config.json`
+(next to the exe; project root during dev). The kit registry is
+configurable too — `zot_repo` is the single source of truth for the
+tags/list URL, the `sbx run` image reference, the child `NO_PROXY`
+registry entry, and the Recreate dialog copy:
+
+```json
+{
+  "sandbox_name": "pi-ai",
+  "mount_path": "C:\\Users\\ele\\Tea",
+  "zot_repo": "zot.byte.art/blackbox/pi-kit",
+  "kit_fallback_tag": ""
+}
+```
+
 The autostart switch is **not** stored there — it is read live from
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (`PiSupervisor` value).
 

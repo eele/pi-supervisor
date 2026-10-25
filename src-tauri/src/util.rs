@@ -21,6 +21,36 @@ fn children() -> &'static Mutex<Vec<u32>> {
     REG.get_or_init(|| Mutex::new(Vec::new()))
 }
 
+/// NO_PROXY injected into every child unless the parent already sets it.
+/// configure_no_proxy() replaces the default at startup from config.json.
+static NO_PROXY: OnceLock<String> = OnceLock::new();
+
+/// Derive the child NO_PROXY list from the configured kit repo: the registry
+/// host plus its parent domain (`.byte.art` style suffix keeps cert/auth
+/// endpoints off the corporate proxy).
+pub fn configure_no_proxy(repo: &str) {
+    let host = repo.split('/').next().unwrap_or(repo);
+    let parent = host
+        .split_once('.')
+        .map(|(_, rest)| format!(",.{rest}"))
+        .unwrap_or_default();
+    // Merge with anything the launching shell already set (never drop it).
+    let mut value = format!("localhost,127.0.0.1,127.0.0.1:*,{host}{parent}");
+    if let Some(pre) = std::env::var("NO_PROXY").ok().filter(|s| !s.is_empty()) {
+        value = format!("{pre},{value}");
+    }
+    let _ = NO_PROXY.set(value.clone());
+    // Also exempt the registry from THIS process's proxy env: ureq honours
+    // HTTPS_PROXY/NO_PROXY, and the app is often launched from a proxied
+    // shell — zot traffic must stay direct (corporate proxy returns 500).
+    std::env::set_var("NO_PROXY", &value);
+    std::env::set_var("no_proxy", &value);
+}
+
+fn no_proxy() -> &'static str {
+    NO_PROXY.get_or_init(|| "localhost,127.0.0.1,127.0.0.1:*,zot.byte.art,.byte.art".into())
+}
+
 fn register(pid: u32) {
     if let Ok(mut v) = children().lock() {
         v.push(pid);
@@ -42,9 +72,9 @@ pub fn kill_all_children() {
 /// Run `cmd args…` to completion with a wall-clock timeout.
 ///
 /// - `stdin` is piped (one-shot write then closed).
-/// - Env: NO_PROXY gets `localhost,127.0.0.1,zot.byte.art` merged in unless
-///   already set — the corporate proxy otherwise cuts sbx/zot traffic
-///   (pi-build README hardens this same fix into the scripts).
+/// - Env: NO_PROXY gets the localhost + configured registry host entries
+///   (see configure_no_proxy) unless already set — the corporate proxy
+///   otherwise cuts sbx/zot traffic (pi-build README hardens this same fix).
 /// - The child pid is registered for exit-time reaping.
 pub fn run_cmd(
     program: &str,
@@ -59,10 +89,7 @@ pub fn run_cmd(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if std::env::var("NO_PROXY").is_err() {
-        cmd.env(
-            "NO_PROXY",
-            "localhost,127.0.0.1,127.0.0.1:*,zot.byte.art,.byte.art",
-        );
+        cmd.env("NO_PROXY", no_proxy());
     }
     let mut child = cmd
         .spawn()

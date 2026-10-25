@@ -507,7 +507,7 @@
   visible={recreateConfirmVisible}
   title="Recreate Sandbox"
   question={'Recreate "pi-ai" from the latest zot kit?'}
-  message="Removed and recreated detached (sbx run -d) from zot.byte.art/blackbox/pi-kit (newest stamp), then both runtime tokens are re-pushed automatically."
+  message={`Removed and recreated detached (sbx run -d) from ${sandbox?.kit_repo || "zot.byte.art/blackbox/pi-kit"} (newest stamp), then both runtime tokens are re-pushed automatically.`}
   confirmLabel="Recreate"
   cancelLabel="Cancel"
   danger={true}
