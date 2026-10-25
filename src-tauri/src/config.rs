@@ -37,6 +37,23 @@ fn on() -> bool {
     true
 }
 
+/// string | [string] — old configs keep working untouched.
+fn de_mount_paths<'de, D>(d: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(String),
+        Many(Vec<String>),
+    }
+    Ok(match OneOrMany::deserialize(d)? {
+        OneOrMany::One(s) => vec![s],
+        OneOrMany::Many(v) => v,
+    })
+}
+
 impl Default for ServiceIntent {
     fn default() -> Self {
         Self {
@@ -53,8 +70,13 @@ pub struct AppConfig {
     /// Sandbox name is FIXED (plan: no rename feature); kept in config only
     /// as an escape hatch for exotic setups, read-only for the UI.
     pub sandbox_name: String,
-    /// Host workspace bind-mounted by `sbx run -d` (shown as "Mount path").
-    pub mount_path: String,
+    /// Host workspace(s) bind-mounted by `sbx run -d` (shown as "Mount
+    /// path"). sbx takes PATH positionally — several entries mean several
+    /// bind mounts and the FIRST one is the workspace. Accepts a bare
+    /// string or an array; the legacy singular key `mount_path` is still
+    /// read (entries may carry a `:ro` suffix per sbx).
+    #[serde(default, alias = "mount_path", deserialize_with = "de_mount_paths")]
+    pub mount_paths: Vec<String>,
     /// Kit image repo on the zot registry, host + path WITHOUT tag
     /// ("zot.byte.art/blackbox/pi-kit"). Single source of truth: drives the
     /// tags/list URL, the `sbx run` reference, the sbx NO_PROXY entry, and
@@ -70,7 +92,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             sandbox_name: "pi-ai".into(),
-            mount_path: "C:\\Users\\ele\\Tea".into(),
+            mount_paths: vec!["C:\\Users\\ele\\Tea".into()],
             zot_repo: "zot.byte.art/blackbox/pi-kit".into(),
             kit_fallback_tag: String::new(),
             services: ServiceIntent::default(),
@@ -98,14 +120,24 @@ fn config_path() -> PathBuf {
 }
 
 pub fn load() -> AppConfig {
+    load_ex().0
+}
+
+/// load() + the "file existed but was unusable" flag. Silent defaults were
+/// a real footgun (bad escape in a hand-edited file → wrong mounts, no
+/// trace in the release UI), so the corruption is surfaced to the statusbar.
+pub fn load_ex() -> (AppConfig, bool) {
     let path = config_path();
-    if let Ok(data) = fs::read_to_string(&path) {
-        if let Ok(cfg) = serde_json::from_str::<AppConfig>(&data) {
-            return cfg;
-        }
-        eprintln!("[pi-supervisor] config.json corrupt, falling back to defaults");
+    match fs::read_to_string(&path) {
+        Err(_) => return (AppConfig::default(), false), // absent file: fresh install
+        Ok(data) => match serde_json::from_str::<AppConfig>(&data) {
+            Ok(cfg) => (cfg, false),
+            Err(e) => {
+                eprintln!("[pi-supervisor] config.json corrupt ({e}), falling back to defaults");
+                (AppConfig::default(), true)
+            }
+        },
     }
-    AppConfig::default()
 }
 
 /// Atomic save: temp file + rename, mirroring the proven dns-switch pattern.
@@ -207,10 +239,25 @@ mod tests {
     #[test]
     fn partial_json_gets_defaults() {
         let cfg: AppConfig = serde_json::from_str(r#"{"mount_path":"D:\\x"}"#).unwrap();
-        assert_eq!(cfg.mount_path, "D:\\x");
+        assert_eq!(cfg.mount_paths, vec!["D:\\x"]);
         assert_eq!(cfg.sandbox_name, "pi-ai");
         assert_eq!(cfg.zot_repo, "zot.byte.art/blackbox/pi-kit");
         assert!(cfg.services.bridge);
+    }
+
+    #[test]
+    fn mount_paths_accepts_legacy_string_and_arrays() {
+        // legacy singular key, bare string
+        let cfg: AppConfig = serde_json::from_str(r#"{"mount_path":"D:\\x"}"#).unwrap();
+        assert_eq!(cfg.mount_paths, vec!["D:\\x"]);
+        // new plural key, array (extra mount + read-only suffix pass-through)
+        let cfg: AppConfig =
+            serde_json::from_str(r#"{"mount_paths":["C:\\ws","D:\\refs:ro"]}"#).unwrap();
+        assert_eq!(cfg.mount_paths, vec!["C:\\ws", "D:\\refs:ro"]);
+        // saving migrates transparently: the round trip lands on plural key
+        let json = serde_json::to_string(&cfg).unwrap();
+        assert!(json.contains("\"mount_paths\""));
+        assert!(!json.contains("\"mount_path\""));
     }
 
     #[test]
@@ -218,5 +265,24 @@ mod tests {
         let cfg: AppConfig =
             serde_json::from_str(r#"{"zot_repo":"registry.internal:5000/kit/pi"}"#).unwrap();
         assert_eq!(cfg.zot_repo, "registry.internal:5000/kit/pi");
+    }
+
+    #[test]
+    fn full_real_world_config_parses() {
+        // Byte-shape of an actual on-disk file (incident: a heredoc ate the
+        // JSON double-escapes; the resulting \U "invalid escape" must be
+        // REJECTED loudly, not half-parsed).
+        let cfg: AppConfig = serde_json::from_str(
+            r#"{
+              "sandbox_name": "pi-ai",
+              "mount_paths": ["C:\\Users\\ele\\Tea", "C:\\Users\\ele\\Desktop:ro"],
+              "zot_repo": "zot.byte.art/blackbox/pi-kit",
+              "kit_fallback_tag": "",
+              "services": { "pageant": true, "bridge": true, "notify": true },
+              "window": null
+            }"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.mount_paths.len(), 2, "got {:?}", cfg.mount_paths);
     }
 }

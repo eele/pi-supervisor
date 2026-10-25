@@ -165,6 +165,12 @@ export async function getAutostart(): Promise<boolean> {
   return MOCK.autostart;
 }
 
+/** True when config.json failed to parse at startup (defaults in use). */
+export async function getConfigCorrupt(): Promise<boolean> {
+  if (isTauri()) return invoke<boolean>("get_config_corrupt");
+  return false;
+}
+
 export async function setAutostart(on: boolean): Promise<void> {
   if (isTauri()) return invoke("set_autostart", { on });
   MOCK.autostart = on;

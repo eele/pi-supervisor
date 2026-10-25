@@ -24,11 +24,16 @@ registry entry, and the Recreate dialog copy:
 ```json
 {
   "sandbox_name": "pi-ai",
-  "mount_path": "C:\\Users\\ele\\Tea",
+  "mount_paths": ["C:\\Users\\ele\\Tea"],
   "zot_repo": "zot.byte.art/blackbox/pi-kit",
   "kit_fallback_tag": ""
 }
 ```
+
+`mount_paths` takes a string or an array — several entries mean several
+bind mounts (first = workspace; extras may carry sbx's `:ro` suffix). The
+legacy singular key `"mount_path": "C:\\..."` is still read and migrates
+to the plural key on first save.
 
 The autostart switch is **not** stored there — it is read live from
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (`PiSupervisor` value).

@@ -12,6 +12,7 @@
     attachSession,
     disableLegacyStartup,
     getAutostart,
+    getConfigCorrupt,
     getRecreateState,
     getSandbox,
     getServices,
@@ -70,6 +71,9 @@
   // Sandbox card busy flags
   let refreshing = $state(false);
   let pushing = $state(false);
+
+  // Config corruption is a startup fact: read once, warn forever after.
+  let configCorrupt = $state(false);
 
   // Transient statusbar message (Copy status / logs / legacy-disable result).
   // Expires on a 5 s timer — must NOT be wiped by the next background poll,
@@ -132,6 +136,7 @@
     parts.push("refresh 3 s");
     let s = parts.join(" · ");
     const errs: string[] = [];
+    if (configCorrupt) errs.push("config.json corrupt — defaults in use, check the file");
     if (servicesError) errs.push("services poll failed");
     if (sandboxError) errs.push("sandbox poll failed");
     if (sessionsError) errs.push("sessions poll failed");
@@ -143,6 +148,7 @@
   const statusIsError = $derived(
     startupError !== "" ||
       (flashMsg !== null && flashIsError) ||
+      configCorrupt ||
       servicesError ||
       sandboxError ||
       sessionsError ||
@@ -197,6 +203,18 @@
     return () => {
       dead = true;
       clearInterval(t);
+    };
+  });
+
+  $effect(() => {
+    let dead = false;
+    getConfigCorrupt()
+      .then((v) => {
+        if (!dead) configCorrupt = v;
+      })
+      .catch(() => {});
+    return () => {
+      dead = true;
     };
   });
 

@@ -194,7 +194,8 @@ fn restore_window_state(app: &AppHandle) {
 }
 
 fn main() {
-    let st = AppState::new(config::load());
+    let (cfg, config_corrupt) = config::load_ex();
+    let st = AppState::new(cfg, config_corrupt);
     // sbx children must bypass the proxy for the configured registry host.
     util::configure_no_proxy(&st.cfg.lock().unwrap().zot_repo);
 
@@ -212,6 +213,7 @@ fn main() {
             commands::get_services,
             commands::start_service,
             commands::stop_service,
+            commands::get_config_corrupt,
             commands::get_sandbox,
             commands::recreate_sandbox,
             commands::get_recreate_state,

@@ -41,6 +41,9 @@ pub struct RecreateState {
 
 pub struct AppState {
     pub cfg: Mutex<AppConfig>,
+    /// config.json existed but failed to parse at startup (defaults in
+    /// use) — surfaced on the statusbar so silent wrong-settings can't hide.
+    pub config_corrupt: bool,
     /// Fixed order: [pageant, bridge, notify].
     pub services: Mutex<Vec<ServiceRuntime>>,
     pub sandbox: Mutex<SandboxInfo>,
@@ -50,7 +53,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(cfg: AppConfig) -> Arc<Self> {
+    pub fn new(cfg: AppConfig, config_corrupt: bool) -> Arc<Self> {
         let mk = |id, name, subtitle: &str| ServiceRuntime {
             info: ServiceInfo {
                 id,
@@ -63,6 +66,7 @@ impl AppState {
         };
         let kit_repo = cfg.zot_repo.clone();
         Arc::new(Self {
+            config_corrupt,
             cfg: Mutex::new(cfg),
             services: Mutex::new(vec![
                 mk("pageant", "Pageant SSH Agent", "no ~/.ssh ppk loaded yet"),

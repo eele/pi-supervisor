@@ -148,16 +148,16 @@ fn run_recreate(st: &Arc<AppState>) {
     advance(st, 1, false);
 
     // 3. detached run: permanent residency (the -d flag is what makes a
-    //    separate keep-alive daemon unnecessary).
+    //    separate keep-alive daemon unnecessary). Every configured
+    //    mount_paths entry becomes a positional PATH (first = workspace;
+    //    sbx also takes `:ro` suffixes on extra entries).
     advance(st, 2, true);
-    let run_args = [
-        "run",
-        "-d",
-        "--name",
-        name.as_str(),
-        kit.as_str(),
-        cfg.mount_path.as_str(),
-    ];
+    if cfg.mount_paths.is_empty() {
+        return fail(st, 2, "config.json mount_paths is empty — refusing to run without a workspace".into());
+    }
+    let mut run_args: Vec<&str> =
+        vec!["run", "-d", "--name", name.as_str(), kit.as_str()];
+    run_args.extend(cfg.mount_paths.iter().map(|p| p.as_str()));
     if let Err(e) = util::sbx(&run_args, 180_000) {
         // Fresh machines ship kit.allowedSources=["docker.io/"] only, so the
         // zot kit is rejected by CLIENT-SIDE policy. Self-heal exactly the way

@@ -54,6 +54,13 @@ pub async fn stop_service(st: tauri::State<'_, Arc<AppState>>, id: String) -> Re
     supervisor::stop(&st, &id)
 }
 
+/// True when config.json failed to parse at startup and defaults are in
+/// use (statusbar warning).
+#[tauri::command]
+pub fn get_config_corrupt(st: tauri::State<'_, Arc<AppState>>) -> bool {
+    st.config_corrupt
+}
+
 #[tauri::command]
 pub fn get_sandbox(st: tauri::State<'_, Arc<AppState>>) -> SandboxInfo {
     st.sandbox.lock().unwrap().clone()
