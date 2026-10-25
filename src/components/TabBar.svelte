@@ -24,4 +24,5 @@
       {t.label}
     </button>
   {/each}
+  <span class="tab-hint">click a tab to switch module ←/→</span>
 </div>

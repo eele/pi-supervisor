@@ -57,7 +57,20 @@ fn stop_listener(st: &Arc<AppState>, idx: usize) -> Result<(), String> {
         f.set(false);
     }
     if let Some(h) = handle {
-        let _ = h.join();
+        // Bounded wait (never join() blindly: a listener that ignored the
+        // stop flag would otherwise hang this command forever).
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while !h.is_finished() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        if h.is_finished() {
+            let _ = h.join();
+        } else {
+            eprintln!(
+                "[supervisor] listener {} did not stop within 5 s — abandoning thread",
+                ["pageant", "bridge", "notify"][idx]
+            );
+        }
     }
     let id = ["pageant", "bridge", "notify"][idx];
     st.set_service_state(idx, "stopped", None);

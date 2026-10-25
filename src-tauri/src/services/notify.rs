@@ -27,6 +27,11 @@ pub fn bind() -> Result<TcpListener, String> {
 pub fn run(listener: TcpListener, stop: Arc<Flag>) {
     let _ = listener.set_nonblocking(true);
     loop {
+        // Checked at the TOP: an idle WouldBlock→sleep cycle would never
+        // reach the error arm below, and stop_listener's join() would hang.
+        if !stop.get() {
+            return;
+        }
         match listener.accept() {
             Ok((sock, _)) => {
                 let spawn = std::thread::Builder::new()

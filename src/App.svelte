@@ -72,8 +72,11 @@
   let pushing = $state(false);
 
   // Transient statusbar message (Copy status / logs / legacy-disable result).
+  // Expires on a 5 s timer — must NOT be wiped by the next background poll,
+  // or button feedback becomes unreadable with 2 s service polling.
   let flashMsg = $state<string | null>(null);
   let flashIsError = $state(false);
+  let flashUntil = 0;
 
   // Dialogs / menu
   let recreateConfirmVisible = $state(false);
@@ -87,6 +90,7 @@
     return e instanceof Error ? e.message : String(e);
   }
   function flash(text: string, isError = false) {
+    flashUntil = Date.now() + 5_000;
     flashMsg = text;
     flashIsError = isError;
   }
@@ -155,7 +159,7 @@
         services = r;
         servicesError = false;
         startupError = "";
-        flashMsg = null; // transient messages expire on next successful poll
+        if (flashMsg !== null && Date.now() > flashUntil) flashMsg = null;
       } catch {
         if (!dead) servicesError = true;
       }
@@ -459,6 +463,11 @@
                 onPushTokens={onPushTokens}
                 onRecreate={openRecreateConfirm}
               />
+              <div class="page-note">
+                name is fixed (pi-ai, no rename control) · not created → chip
+                reads "not created" and Recreate takes the pure-create path
+                (skips rm)
+              </div>
             {:else}
               <div class="sessions-empty">Loading…</div>
             {/if}
@@ -497,6 +506,7 @@
 <ConfirmDialog
   visible={recreateConfirmVisible}
   title="Recreate Sandbox"
+  question={'Recreate "pi-ai" from the latest zot kit?'}
   message="Removed and recreated detached (sbx run -d) from zot.byte.art/blackbox/pi-kit (newest stamp), then both runtime tokens are re-pushed automatically."
   confirmLabel="Recreate"
   cancelLabel="Cancel"
@@ -508,6 +518,7 @@
 <ConfirmDialog
   visible={legacyConfirmVisible}
   title="Disable Legacy Startup"
+  question="Disable the legacy Startup scripts?"
   message="Renames the legacy Startup scripts (server.vbs, pageant-bootstrap.cmd, pi-obs-wake.vbs) with a .disabled suffix so they no longer double-start. Reversible."
   confirmLabel="Disable"
   cancelLabel="Cancel"

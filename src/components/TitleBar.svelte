@@ -72,12 +72,13 @@
 </div>
 
 <style>
-  /* ── Aqua title bar: flat #F4F4F4 → #ECECEC blend ─────────────
+  /* ── Aqua title bar: flat #F4F4F4 → #ECECEC blend, 46px (mockup) ──
      NO border-bottom / separator: the gradient ends exactly at the
      body background color, so the bar blends into the content area
-     (deliberate fix carried over from dns-switch). */
+     (deliberate fix carried over from dns-switch).
+     Traffic-dot skins live in theme.css (shared with dialogs). */
   .title-bar {
-    height: 44px;
+    height: 46px;
     flex-shrink: 0;
     position: relative;
     display: flex;
@@ -88,104 +89,12 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
-  /* ── Traffic light group ───────────────────────────────────── */
   .traffic-light-group {
-    display: flex;
-    gap: 8px;
-    padding-left: 12px;
+    padding-left: 16px;
     height: 100%;
-    align-items: center;
     -webkit-app-region: no-drag;
     z-index: 10;
   }
-
-  /* ── Traffic light dot: Aqua "candy sphere" (identical to
-        dns-switch: radial base + gloss crescent + ring + shadow) ── */
-  .traffic-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1px solid;
-    padding: 0;
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: filter 0.1s ease;
-    flex-shrink: 0;
-  }
-
-  .dot-red {
-    border-color: #e0443e;
-    background: radial-gradient(circle at 50% 42%,
-      #ff9a92 0%,
-      #ff5f57 45%,
-      #d9403a 100%
-    );
-    box-shadow:
-      0 1px 1px rgba(0, 0, 0, 0.18),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-  }
-
-  .dot-yellow {
-    border-color: #d89e23;
-    background: radial-gradient(circle at 50% 42%,
-      #ffe082 0%,
-      #febc2e 45%,
-      #d99424 100%
-    );
-    box-shadow:
-      0 1px 1px rgba(0, 0, 0, 0.18),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-  }
-
-  .dot-green {
-    border-color: #1aab29;
-    background: radial-gradient(circle at 50% 42%,
-      #8ad86e 0%,
-      #28c840 45%,
-      #1e9e22 100%
-    );
-    box-shadow:
-      0 1px 1px rgba(0, 0, 0, 0.18),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.12);
-  }
-
-  /* ── Signature Aqua gloss: crescent highlight on upper third ── */
-  .traffic-dot::before {
-    content: "";
-    position: absolute;
-    top: 1px;
-    left: 2px;
-    right: 2px;
-    height: 45%;
-    border-radius: 50% 50% 50% 50% / 80% 80% 20% 20%;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.4) 60%,
-      rgba(255, 255, 255, 0.05) 100%
-    );
-    pointer-events: none;
-  }
-
-  /* ── Glyphs: hidden until group hover (classic macOS behavior) ── */
-  .traffic-dot svg {
-    position: relative;
-    z-index: 2;
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-  .traffic-light-group:hover .traffic-dot svg {
-    opacity: 1;
-  }
-  .traffic-dot:hover {
-    filter: brightness(1.05);
-  }
-  .dot-red svg { color: #6b1410; }
-  .dot-yellow svg { color: #7a5208; }
-  .dot-green svg { color: #1a5c12; }
 
   /* ── Window title ──────────────────────────────────────────── */
   .title-bar-title {

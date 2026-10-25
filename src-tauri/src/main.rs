@@ -15,9 +15,8 @@ mod zot;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
-use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use config::WindowState;
 use state::AppState;
@@ -50,6 +49,87 @@ fn restore_main_window(app: &AppHandle) {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
+    }
+}
+
+// ── Tray right-click menu (custom Aqua window, mockup 3) ─────────
+// A native Win32 tray menu cannot carry the Aqua skin (rounded #F6F6F6
+// card, solid-blue hovered item), so right-click opens a frameless
+// transparent window styled by TrayMenu.svelte. It hides on blur,
+// exactly like a real menu.
+
+/// Logical size incl. the 10px transparent shadow margin.
+const TRAY_MENU_W: f64 = 170.0;
+const TRAY_MENU_H: f64 = 104.0;
+
+fn ensure_tray_menu(app: &AppHandle) -> Option<tauri::WebviewWindow> {
+    if let Some(w) = app.get_webview_window("tray-menu") {
+        return Some(w);
+    }
+    let w = WebviewWindowBuilder::new(app, "tray-menu", WebviewUrl::App("index.html#tray-menu".into()))
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .visible(false)
+        .inner_size(TRAY_MENU_W, TRAY_MENU_H)
+        .build()
+        .ok()?;
+    // Click anywhere outside → dismiss (blur), like a popup menu.
+    let w2 = w.clone();
+    w.on_window_event(move |e| {
+        if let WindowEvent::Focused(false) = e {
+            let _ = w2.hide();
+        }
+    });
+    Some(w)
+}
+
+fn show_tray_menu_at(app: &AppHandle, x: i32, y: i32) {
+    // First-time creation must NOT run on the main thread: build() waits
+    // on the event loop that "belongs" to the main thread — calling it
+    // from a sync command (main thread) deadlocks the whole app.
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Some(win) = ensure_tray_menu(&app) {
+            let _ = win.set_position(PhysicalPosition::new(x, y));
+            let _ = win.show();
+            let _ = win.set_focus();
+        }
+    });
+}
+
+/// E2E/test entry point: show the tray menu at a physical position.
+#[tauri::command]
+fn show_tray_menu(app: AppHandle, x: i32, y: i32) {
+    show_tray_menu_at(&app, x, y);
+}
+
+/// OS-level truth for E2E asserts (visibilityState can lag SW_HIDE):
+/// is the given webview window currently shown?
+#[tauri::command]
+fn webview_visible(app: AppHandle, label: String) -> bool {
+    app.get_webview_window(&label)
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false)
+}
+
+/// TrayMenu.svelte buttons call this.
+#[tauri::command]
+fn tray_menu_action(app: AppHandle, action: String) {
+    match action.as_str() {
+        "open" => {
+            if let Some(m) = app.get_webview_window("tray-menu") {
+                let _ = m.hide();
+            }
+            restore_main_window(&app);
+        }
+        "exit" => app.exit(0),
+        _ => {}
     }
 }
 
@@ -118,7 +198,15 @@ fn main() {
 
     tauri::Builder::default()
         .manage(st.clone())
+        // Single-instance: a second exe exits immediately and the running
+        // window is restored instead (mockup contract: one supervisor).
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            restore_main_window(app);
+        }))
         .invoke_handler(tauri::generate_handler![
+            show_tray_menu,
+            tray_menu_action,
+            webview_visible,
             commands::get_services,
             commands::start_service,
             commands::stop_service,
@@ -152,18 +240,9 @@ fn main() {
                 }
             }
 
-            // ── Tray: Open / Exit ──────────────────────────────────────
-            let open_item = MenuItem::with_id(app, "tray-open", "Open", true, None::<&str>)?;
-            let exit_item = MenuItem::with_id(app, "tray-exit", "Exit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_item, &exit_item])?;
+            // ── Tray: left/double restores, right-click = custom menu ──
             let mut tray = TrayIconBuilder::with_id("main-tray")
                 .tooltip("Pi Supervisor")
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id().as_ref() {
-                    "tray-open" => restore_main_window(app),
-                    "tray-exit" => app.exit(0),
-                    _ => {}
-                })
                 .on_tray_icon_event(|tray, event| match event {
                     TrayIconEvent::Click {
                         button: MouseButton::Left,
@@ -172,6 +251,43 @@ fn main() {
                     }
                     | TrayIconEvent::DoubleClick { .. } => {
                         restore_main_window(tray.app_handle());
+                    }
+                    TrayIconEvent::Click {
+                        button: MouseButton::Right,
+                        button_state: MouseButtonState::Up,
+                        rect,
+                        ..
+                    } => {
+                        // Mockup: menu pops above the icon, right-aligned.
+                        // (No ensure_tray_menu() HERE: window creation must
+                        // stay off the main thread — see show_tray_menu_at.)
+                        let app = tray.app_handle().clone();
+                        let icon = match (&rect.position, &rect.size) {
+                            (
+                                tauri::Position::Physical(p),
+                                tauri::Size::Physical(s),
+                            ) => Some((p.x, p.y, s.width as i32)),
+                            (
+                                tauri::Position::Logical(l),
+                                tauri::Size::Logical(s),
+                            ) => Some((l.x as i32, l.y as i32, s.width as i32)),
+                            _ => None,
+                        };
+                        if let Some((ix, iy, iw)) = icon {
+                            let sf = app
+                                .primary_monitor()
+                                .ok()
+                                .flatten()
+                                .map(|m| m.scale_factor())
+                                .unwrap_or(1.0);
+                            let mw = (TRAY_MENU_W * sf) as i32;
+                            let mh = (TRAY_MENU_H * sf) as i32;
+                            show_tray_menu_at(
+                                &app,
+                                ix + iw - mw,
+                                iy - mh - (4.0 * sf) as i32,
+                            );
+                        }
                     }
                     _ => {}
                 });

@@ -154,3 +154,117 @@ test("startup toggle mirrors the registry, not config.json", async () => {
     regHas ? "true" : "false"
   );
 });
+
+test("startup toggle round-trip writes then clears the Run key", async () => {
+  const toggle = page.getByTestId("startup-toggle");
+  const before = await toggle.getAttribute("aria-checked");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", before === "true" ? "false" : "true");
+  let regHas = true;
+  try {
+    execSync(
+      'reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v PiSupervisor',
+      { stdio: "pipe" }
+    );
+  } catch {
+    regHas = false;
+  }
+  expect(regHas).toBe(before !== "true"); // flipped, and the key followed
+  await toggle.click(); // restore the original state
+  await expect(toggle).toHaveAttribute("aria-checked", before ?? "false");
+});
+
+test("sandbox buttons: Refresh + Push Tokens report over the statusbar", async () => {
+  test.setTimeout(150_000); // two real sbx execs, each allowed up to 60 s
+  await page.getByTestId("tab-sandbox").click();
+  await page.getByTestId("btn-refresh").click();
+  await expect(page.getByTestId("status")).toContainText("refreshed", {
+    timeout: 6_000,
+  });
+  // Real push into the live sandbox (idempotent, mode 600): either result
+  // string is honest feedback — both start with "push-tokens".
+  await page.getByTestId("btn-push-tokens").click();
+  await expect(page.getByTestId("status")).toContainText(/push-tokens/i, {
+    timeout: 30_000,
+  });
+});
+
+test("service Stop/Start toggle works for real (notify hub)", async () => {
+  await page.getByTestId("tab-services").click();
+  const row = page.getByTestId("service-row-notify");
+  // Stop: state leaves running and STAYS stopped (intent persisted).
+  await page.getByTestId("btn-toggle-notify").click();
+  await expect(row.locator(".state-dot")).not.toHaveClass(/running/, {
+    timeout: 8_000,
+  });
+  await page.waitForTimeout(3_500); // a full watchdog cycle must NOT revive it
+  await expect(row.locator(".state-dot")).not.toHaveClass(/running/);
+  // Start: back to running.
+  await page.getByTestId("btn-toggle-notify").click();
+  await expect(row.locator(".state-dot.running")).toBeVisible({
+    timeout: 15_000,
+  });
+});
+
+test("tray menu: Aqua popup window with Open/Exit, Open restores main", async () => {
+  const ctx = page.context();
+  await page.evaluate(() => {
+    const internals = (window as any).__TAURI_INTERNALS__;
+    return internals.invoke("show_tray_menu", { x: 120, y: 120 });
+  });
+  const deadline = Date.now() + 15_000;
+  let menu: Page | undefined;
+  for (;;) {
+    menu = ctx.pages().find((p) => p.url().includes("tray-menu"));
+    if (menu) {
+      try {
+        await menu.waitForSelector('[data-testid="tray-menu"]', { timeout: 2_000 });
+        break;
+      } catch {
+        /* page exists but not rendered yet — keep polling */
+      }
+    }
+    if (Date.now() > deadline) break;
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  if (!menu) throw new Error("tray-menu window never appeared");
+  await expect(menu.getByTestId("tray-item-open")).toHaveText("Open");
+  await expect(menu.getByTestId("tray-item-exit")).toHaveText("Exit");
+  // Mockup skin: Open hovered renders the solid Aqua blue.
+  await menu.getByTestId("tray-item-open").hover();
+  await expect(menu.getByTestId("tray-item-open")).toHaveCSS(
+    "background-color",
+    "rgb(56, 118, 214)"
+  );
+  await menu.getByTestId("tray-item-open").click();
+  // Menu dismisses (OS-level hide — WebView2 keeps visibilityState
+  // "visible" after SW_HIDE, so ask the backend for the truth).
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() =>
+          (window as any).__TAURI_INTERNALS__.invoke("webview_visible", {
+            label: "tray-menu",
+          })
+        ),
+      { timeout: 5_000 }
+    )
+    .toBe(false);
+  await expect(page.getByTestId("title-bar")).toBeVisible();
+});
+
+test("single instance: a second exe exits immediately", async () => {
+  const proc = spawn(EXE, [], { detached: true, stdio: "ignore" });
+  proc.unref();
+  // The plugin tells it to exit right away; it must not linger or open a UI.
+  const code = await new Promise<number | null>((resolve) => {
+    const t = setTimeout(() => resolve(null), 12_000);
+    proc.on("exit", (c) => {
+      clearTimeout(t);
+      resolve(c);
+    });
+  });
+  expect(code, "second instance should have exited").not.toBeNull();
+  // The suite-owned instance is still up and serving.
+  await expect(page.getByTestId("title-bar")).toBeVisible();
+});

@@ -41,13 +41,16 @@ pub fn get_services(st: tauri::State<'_, Arc<AppState>>) -> Vec<ServiceDto> {
     st.service_infos().into_iter().map(ServiceDto::from).collect()
 }
 
+// NOTE ON async: plain `fn` commands run on the MAIN thread — a blocking
+// stop/join or a 60 s sbx exec would freeze the whole UI (observed). The
+// potentially-slow commands below are async so they run on the async pool.
 #[tauri::command]
-pub fn start_service(st: tauri::State<'_, Arc<AppState>>, id: String) -> Result<(), String> {
+pub async fn start_service(st: tauri::State<'_, Arc<AppState>>, id: String) -> Result<(), String> {
     supervisor::start(&st, &id)
 }
 
 #[tauri::command]
-pub fn stop_service(st: tauri::State<'_, Arc<AppState>>, id: String) -> Result<(), String> {
+pub async fn stop_service(st: tauri::State<'_, Arc<AppState>>, id: String) -> Result<(), String> {
     supervisor::stop(&st, &id)
 }
 
@@ -67,7 +70,7 @@ pub fn get_recreate_state(st: tauri::State<'_, Arc<AppState>>) -> RecreateState 
 }
 
 #[tauri::command]
-pub fn push_tokens(st: tauri::State<'_, Arc<AppState>>) -> Result<String, String> {
+pub async fn push_tokens(st: tauri::State<'_, Arc<AppState>>) -> Result<String, String> {
     let name = st.cfg.lock().unwrap().sandbox_name.clone();
     if matches!(
         st.sandbox.lock().unwrap().state,
@@ -84,7 +87,7 @@ pub fn get_sessions(st: tauri::State<'_, Arc<AppState>>) -> SessionsSnapshot {
 }
 
 #[tauri::command]
-pub fn attach_session(name: String) -> Result<(), String> {
+pub async fn attach_session(name: String) -> Result<(), String> {
     sessions::attach(&name)
 }
 
@@ -94,11 +97,11 @@ pub fn get_autostart() -> bool {
 }
 
 #[tauri::command]
-pub fn set_autostart(on: bool) -> Result<(), String> {
+pub async fn set_autostart(on: bool) -> Result<(), String> {
     config::autostart_set(on)
 }
 
 #[tauri::command]
-pub fn disable_legacy_startup() -> Vec<String> {
+pub async fn disable_legacy_startup() -> Vec<String> {
     config::disable_legacy_startup()
 }
