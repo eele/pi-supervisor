@@ -205,7 +205,13 @@ fn show_toast(xml: &str) -> Result<(), String> {
     static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let path = std::env::temp_dir().join(format!("pi-sup-toast-{n}.xml"));
-    std::fs::write(&path, xml).map_err(|e| e.to_string())?;
+    // BOM matters: PowerShell 5.1 Get-Content reads a BOM-less file as ANSI
+    // (GBK here), mangling UTF-8 CJK into XML-illegal chars — LoadXml then
+    // fails 0xC00CE56D and every Chinese notify 500s. With the BOM,
+    // Get-Content decodes UTF-8 and strips it before LoadXml sees the text.
+    let mut doc = vec![0xEFu8, 0xBB, 0xBF];
+    doc.extend_from_slice(xml.as_bytes());
+    std::fs::write(&path, doc).map_err(|e| e.to_string())?;
 
     let ps = format!(
         "$ErrorActionPreference='Stop';\

@@ -57,6 +57,16 @@ fn register(pid: u32) {
     }
 }
 
+/// Child exited on its own — drop it from the reap registry. Without this
+/// the list grows for every poll cycle (prober/poller/notify each spawn one,
+/// thousands per day) and the exit-time kill_all_children serializes a
+/// taskkill per stale pid: tray Exit appeared to hang for minutes.
+fn deregister(pid: u32) {
+    if let Ok(mut v) = children().lock() {
+        v.retain(|p| *p != pid);
+    }
+}
+
 /// Kill every registered child that is still running (called on app exit).
 pub fn kill_all_children() {
     let Ok(mut v) = children().lock() else { return };
@@ -94,7 +104,8 @@ pub fn run_cmd(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("cannot run {program}: {e}"))?;
-    register(child.id());
+    let pid = child.id();
+    register(pid);
 
     if let Some(data) = stdin {
         if let Some(mut si) = child.stdin.take() {
@@ -134,6 +145,7 @@ pub fn run_cmd(
                 if start.elapsed().as_millis() as u64 > timeout_ms {
                     let _ = child.kill();
                     let _ = child.wait();
+                    deregister(pid);
                     return Err(format!("{program} {TIMEOUT_ERR} after {timeout_ms} ms"));
                 }
                 std::thread::sleep(std::time::Duration::from_millis(30));
@@ -141,6 +153,8 @@ pub fn run_cmd(
             Err(e) => return Err(format!("cannot wait for {program}: {e}")),
         }
     };
+    // Reaped on its own: nothing left to kill at app exit.
+    deregister(pid);
     // Readers end as soon as the process dies; 5 s is generous headroom.
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
