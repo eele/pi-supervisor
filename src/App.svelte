@@ -5,6 +5,7 @@
   import SessionsPanel from "./components/SessionsPanel.svelte";
   import ServiceRow from "./components/ServiceRow.svelte";
   import SandboxCard from "./components/SandboxCard.svelte";
+  import PsOpsPanel from "./components/PsOpsPanel.svelte";
   import ToggleSwitch from "./components/ToggleSwitch.svelte";
   import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
@@ -37,6 +38,7 @@
     { id: "sessions", label: "Sessions" },
     { id: "services", label: "Background Services" },
     { id: "sandbox", label: "Sandbox" },
+    { id: "psops", label: "PS Audit" },
   ];
   let activeTab = $state<TabId>("sessions");
   const activeIndex = $derived(
@@ -74,6 +76,13 @@
 
   // Config corruption is a startup fact: read once, warn forever after.
   let configCorrupt = $state(false);
+
+  // PS Audit tab reports its page summary for the statusbar (SVG mockup:
+  // “PS Audit: 1,284 records · showing 1–50 · filter …”). Stable callback
+  // identity — an inline closure would re-trigger the panel's meta effect.
+  let psopsMeta = $state<{ total: number; from: number; to: number; q: string } | null>(null);
+  const psopsSetMeta = (m: { total: number; from: number; to: number; q: string } | null) =>
+    (psopsMeta = m);
 
   // Transient statusbar message (Copy status / logs / legacy-disable result).
   // Expires on a 5 s timer — must NOT be wiped by the next background poll,
@@ -116,6 +125,12 @@
     if (startupBusy) return "Setting startup…";
     if (startupError) return startupError;
     if (flashMsg !== null) return flashMsg;
+    if (activeTab === "psops" && psopsMeta) {
+      const m = psopsMeta;
+      let s = `PS Audit: ${m.total.toLocaleString("en-US")} records · showing ${m.from}–${m.to}`;
+      if (m.q) s += ` · filter "${m.q}"`;
+      return s;
+    }
     const parts: string[] = [];
     if (services.length > 0) {
       const n = services.filter((s) => s.state === "running").length;
@@ -449,7 +464,7 @@
     <div class="tab-card">
       <TabBar tabs={TABS} active={activeTab} onSelect={(id) => (activeTab = id as TabId)} />
       <div class="tab-content">
-        <div class="tab-track" style="transform: translateX(-{activeIndex * (100 / 3)}%)">
+        <div class="tab-track" style="transform: translateX(-{activeIndex * (100 / TABS.length)}%)">
           <div class="tab-panel" role="tabpanel" aria-label="Sessions">
             <SessionsPanel
               snapshot={sessions}
@@ -489,6 +504,9 @@
             {:else}
               <div class="sessions-empty">Loading…</div>
             {/if}
+          </div>
+          <div class="tab-panel" role="tabpanel" aria-label="PS Audit">
+            <PsOpsPanel active={activeTab === "psops"} onMeta={psopsSetMeta} />
           </div>
         </div>
       </div>

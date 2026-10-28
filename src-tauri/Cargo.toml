@@ -22,6 +22,9 @@ serde_json = "1"
 # tls + native-certs: zot serves https only, and the Windows cert store must
 # validate it (default features are off, so TLS is not implicitly on).
 ureq = { version = "2", default-features = false, features = ["json", "tls", "native-certs"] }
+# hostps audit store (~/.pi-su/ps-audit.db). bundled = own libsqlite3,
+# no system dependency; fts5 included for a future upgrade, unused today.
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 raw-window-handle = "0.6"
@@ -30,5 +33,6 @@ windows = { version = "0.58", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Memory",
     "Win32_System_DataExchange",
+    "Win32_System_Registry",
     "Win32_Security",
 ] }

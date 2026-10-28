@@ -31,10 +31,26 @@ pub struct ServiceIntent {
     pub bridge: bool,
     #[serde(default = "on")]
     pub notify: bool,
+    /// hostps running-mode intent. NOTE: even when false the MCP listener
+    /// stays up (access-disabled responder) — this intent gates command
+    /// EXECUTION, never the port (plan r4.1).
+    #[serde(default = "on")]
+    pub hostps: bool,
+    /// "auto" | "force" | "off" — SSE output-stream negotiation mode.
+    #[serde(default = "default_sse")]
+    pub hostps_sse: String,
+    #[serde(default = "default_hostps_port")]
+    pub hostps_port: u16,
 }
 
 fn on() -> bool {
     true
+}
+fn default_sse() -> String {
+    "auto".into()
+}
+fn default_hostps_port() -> u16 {
+    37022
 }
 
 /// string | [string] — old configs keep working untouched.
@@ -60,6 +76,9 @@ impl Default for ServiceIntent {
             pageant: true,
             bridge: true,
             notify: true,
+            hostps: true,
+            hostps_sse: default_sse(),
+            hostps_port: default_hostps_port(),
         }
     }
 }

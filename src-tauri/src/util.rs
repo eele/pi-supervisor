@@ -221,6 +221,14 @@ pub fn sbx_exec_stdin(
         .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
 }
 
+/// Seconds since the Unix epoch (UTC); 0 on clock-before-epoch systems.
+pub fn now_unix() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
 /// Nonblocking cooperative flag helper.
 pub struct Flag(pub AtomicBool);
 impl Flag {

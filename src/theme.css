@@ -35,6 +35,7 @@
   /* Semantic */
   --success: #28c840;
   --error: #ff3b30;
+  --warn: #ff9500;
   --muted: #8e8e93;
 
   /* Shape */
@@ -559,20 +560,20 @@ body {
   display: flex;
 }
 
-/* horizontally sliding track of 3 panels (150ms ease) */
+/* horizontally sliding track of 4 panels (150ms ease) */
 .tab-track {
   display: flex;
   /* flex-shrink:0 is load-bearing: .tab-content is a flex container, so a
-     shrinkable 300% item collapses to 100% and every panel becomes a third
+     shrinkable 400% item collapses to 100% and every panel becomes a quarter
      of the viewport (neighbour panels bleed into the active tab). */
   flex: none;
-  width: 300%;
+  width: 400%;
   height: 100%;
   transition: transform 150ms ease;
 }
 
 .tab-panel {
-  width: 33.3333%;
+  width: 25%;
   flex-shrink: 0;
   height: 100%;
   min-height: 0;
@@ -952,4 +953,311 @@ body {
   background: linear-gradient(180deg, #f4f4f4 0%, #ececec 100%);
   border-top: 1px solid var(--border-separator);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ─── PS Audit tab (command operation records) ─────────────────
+   Mockup: plan-assets/pi-ps-mcp-mockup-records.svg — pill search box on
+   top, gray header strip, single-line previews with orange "…" when
+   width-clipped, click-to-expand COMMAND/STDOUT/STDERR pre blocks,
+   Aqua pagination footer with total readout on the right. */
+.psop-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.psop-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 2px 0 8px;
+}
+
+.psop-searchbox {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.psop-search {
+  width: 100%;
+  height: 28px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #f6f6f6;
+  padding: 0 12px 0 28px;
+  font-family: var(--font-main);
+  font-size: 11px;
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.psop-search:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(56, 118, 214, 0.25);
+}
+
+/* magnifier: circle + handle, 1.6pt #8E8E93 (mockup) */
+.psop-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -7px;
+  border: 1.6px solid var(--muted);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.psop-search-icon::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 9px;
+  width: 5px;
+  height: 1.6px;
+  background: var(--muted);
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.psop-search-hint {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .psop-search-hint {
+    display: none;
+  }
+}
+
+/* header + rows share one grid so columns line up */
+.psop-head,
+.psop-row {
+  display: grid;
+  grid-template-columns: 88px 92px 30px 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.psop-head {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  background: #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+.psop-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
+.psop-row {
+  min-height: 24px;
+  padding: 5px 0;
+  border-bottom: 1px solid #ececec;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.psop-row:hover {
+  background: #f6f9ff;
+}
+
+.psop-row.expanded {
+  background: #f0f5ff;
+}
+
+@keyframes psop-new-flash {
+  0% {
+    background: rgba(255, 149, 0, 0.28);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.psop-row.new {
+  animation: psop-new-flash 2.5s ease-out;
+}
+
+.psop-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.psop-chip {
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: 7px;
+  font-size: 9px;
+  line-height: 13px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.psop-chip.ok {
+  background: var(--success);
+}
+.psop-chip.warn {
+  background: var(--warn);
+}
+.psop-chip.err {
+  background: var(--error);
+}
+.psop-chip.gray {
+  background: var(--muted);
+}
+.psop-chip.info {
+  background: var(--accent);
+}
+
+.psop-exit,
+.psop-dur {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.psop-exit {
+  color: var(--text-primary);
+}
+
+/* single-line preview, width-adaptive clip (scrollWidth detection —
+   native ellipsis cannot be recolored) */
+.psop-prev {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.psop-prev-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.psop-ellipsis {
+  display: none;
+  flex-shrink: 0;
+  color: var(--warn);
+  font-weight: bold;
+}
+
+.psop-prev-text.clipped + .psop-ellipsis {
+  display: inline;
+}
+
+/* expanded full-text pre-render (mockup row 2) */
+.psop-detail {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  background: #f6f6f6;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+}
+
+.psop-meta {
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+}
+
+.psop-sect {
+  font-size: 9px;
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin: 6px 0 2px;
+}
+
+.psop-sect:first-of-type {
+  margin-top: 0;
+}
+
+.psop-pre {
+  margin: 0;
+  padding: 3px 6px;
+  background: #ffffff;
+  border: 1px solid #e3e3e3;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.psop-pre.err {
+  color: #c0392b;
+}
+
+.psop-errline {
+  margin-top: 6px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--error);
+}
+
+.psop-loading {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.psop-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.psop-pager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.psop-pager .btn {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.psop-pagebtn {
+  min-width: 26px;
+  padding: 0 6px !important;
+}
+
+.psop-count {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.psop-note {
+  flex-shrink: 0;
+  padding-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
 }

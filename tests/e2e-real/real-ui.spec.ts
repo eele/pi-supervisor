@@ -27,11 +27,28 @@ async function cdpPageList(): Promise<any[]> {
   return (await res.json()) as any[];
 }
 
-async function launchApp() {
-  // Reuse an already-instrumented instance if present.
+async function cdpPortFree(): Promise<boolean> {
   try {
     await cdpPageList();
-    return;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+async function launchApp() {
+  // Reuse an already-instrumented instance if present — but only when the
+  // endpoint serves OUR page. A debug-window leftover (hostps-real shares
+  // this port) that is mid-teardown must not masquerade as a reusable
+  // release instance: its webview dies, so wait for the port to free,
+  // then launch fresh.
+  try {
+    const targets = await cdpPageList();
+    if (targets.some((t) => t.url?.includes("tauri.localhost"))) return;
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline && !(await cdpPortFree())) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
   } catch {
     /* not running: launch it */
   }
@@ -90,13 +107,15 @@ test("app shell renders in the real window", async () => {
   await expect(page.getByTestId("tab-sessions")).toBeVisible();
   await expect(page.getByTestId("tab-services")).toBeVisible();
   await expect(page.getByTestId("tab-sandbox")).toBeVisible();
+  await expect(page.getByTestId("tab-psops")).toBeVisible();
   await expect(page.getByTestId("startup-row")).toBeVisible();
   await expect(page.getByTestId("status")).toBeVisible();
 });
 
 test("tab panels are full-width (no neighbour bleed into the active tab)", async () => {
-  // Regression: the 300% track must not flex-shrink — every panel must be
-  // exactly as wide as the visible tab-content viewport.
+  // Regression: the 400% track (4 tabs since the PS Audit page) must not
+  // flex-shrink — every panel must be exactly as wide as the visible
+  // tab-content viewport.
   const dims = await page.evaluate(() => {
     const content = document.querySelector(".tab-content")!;
     const panels = [...document.querySelectorAll(".tab-panel")].map(
@@ -104,7 +123,7 @@ test("tab panels are full-width (no neighbour bleed into the active tab)", async
     );
     return { viewport: content.clientWidth, panels };
   });
-  expect(dims.panels.length).toBe(3);
+  expect(dims.panels.length).toBe(4);
   for (const w of dims.panels) {
     expect(Math.abs(w - dims.viewport)).toBeLessThanOrEqual(1);
   }

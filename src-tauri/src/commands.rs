@@ -108,6 +108,46 @@ pub async fn set_autostart(on: bool) -> Result<(), String> {
     config::autostart_set(on)
 }
 
+// ── PS Audit tab queries ──────────────────────────────────────────
+// Reads the same in-process ps_op_log handle the gateway writes through
+// (WAL; reads never block the executor). Async: a LIKE scan must not run
+// on the main thread.
+
+#[derive(serde::Serialize)]
+pub struct PsOpsPage {
+    pub total: i64,
+    pub rows: Vec<crate::psaudit::PsOpRow>,
+}
+
+fn audit_of(st: &AppState) -> Result<std::sync::Arc<crate::psaudit::PsAudit>, String> {
+    st.hostps
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|c| c.audit.clone())
+        .ok_or_else(|| "audit db not initialized (hostps setup failed)".into())
+}
+
+#[tauri::command]
+pub async fn get_ps_ops(
+    st: tauri::State<'_, Arc<AppState>>,
+    q: String,
+    page: u32,
+    page_size: u32,
+) -> Result<PsOpsPage, String> {
+    let audit = audit_of(&st)?;
+    let (total, rows) = audit.query(&q, page, page_size)?;
+    Ok(PsOpsPage { total, rows })
+}
+
+#[tauri::command]
+pub async fn get_ps_op_detail(
+    st: tauri::State<'_, Arc<AppState>>,
+    id: i64,
+) -> Result<Option<crate::psaudit::PsOpFull>, String> {
+    audit_of(&st)?.detail(id)
+}
+
 #[tauri::command]
 pub async fn disable_legacy_startup() -> Vec<String> {
     config::disable_legacy_startup()

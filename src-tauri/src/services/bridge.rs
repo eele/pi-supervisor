@@ -68,11 +68,15 @@ pub fn run(listeners: Vec<TcpListener>, stop: Arc<Flag>) {
                     let _ = spawn; // thread bomb-out just drops the client
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
-                Err(_) if stop.get() => return,
+                Err(_) if !stop.get() => return,
                 Err(_) => {}
             }
         }
-        if stop.get() {
+        // `stop` is an ALIVE flag (spawned true, flipped false by
+        // stop_listener) — the same convention notify.rs uses. Without the
+        // negation the thread returned on its very first pass and the
+        // watchdog resurrect loop made bridge never listen.
+        if !stop.get() {
             return;
         }
         if !busy {

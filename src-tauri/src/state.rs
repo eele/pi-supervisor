@@ -44,8 +44,10 @@ pub struct AppState {
     /// config.json existed but failed to parse at startup (defaults in
     /// use) — surfaced on the statusbar so silent wrong-settings can't hide.
     pub config_corrupt: bool,
-    /// Fixed order: [pageant, bridge, notify].
+    /// Fixed order: [pageant, bridge, notify, hostps].
     pub services: Mutex<Vec<ServiceRuntime>>,
+    /// hostps runtime (audit handle + enabled mode); None until setup runs.
+    pub hostps: Mutex<Option<std::sync::Arc<crate::services::hostps::Ctx>>>,
     pub sandbox: Mutex<SandboxInfo>,
     pub sessions: Mutex<SessionsSnapshot>,
     pub recreate: Mutex<RecreateState>,
@@ -80,7 +82,13 @@ impl AppState {
                     "Notify Hub",
                     "http://0.0.0.0:60000/notify · Windows toast (reminder)",
                 ),
+                mk(
+                    "hostps",
+                    "Host PowerShell MCP",
+                    "http://0.0.0.0:37022/mcp · Bearer (HKCU HOST_PS_KEY) · audit → ~/.pi-su/ps-audit.db",
+                ),
             ]),
+            hostps: Mutex::new(None),
             sandbox: Mutex::new(SandboxInfo {
                 // Unknown until the first probe lands; start conservative.
                 state: crate::sandbox::SandboxState::NotCreated,

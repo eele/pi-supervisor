@@ -1,5 +1,5 @@
 /** Service identifiers known to the supervisor. */
-export type ServiceId = "pageant" | "bridge" | "notify";
+export type ServiceId = "pageant" | "bridge" | "notify" | "hostps";
 
 export type ServiceState = "running" | "starting" | "stopped" | "failed";
 
@@ -52,4 +52,45 @@ export interface SessionsSnapshot {
   sessions: SessionRow[];
 }
 
-export type TabId = "sessions" | "services" | "sandbox";
+export type TabId = "sessions" | "services" | "sandbox" | "psops";
+
+/** One ps_op_log row (list view — no big fields; expand fetches detail). */
+export interface PsOpRow {
+  id: number;
+  /** UTC ISO8601, e.g. 2026-10-26T09:41:02Z */
+  ts: string;
+  /** ok | tool_error | exec_failed | timeout | auth_failed | log_failed | client_disconnected | disabled | started */
+  status: string;
+  exit_code: number | null;
+  duration_ms: number | null;
+  tool: string | null;
+  stream: boolean;
+  stdout_truncated: boolean;
+  error: string | null;
+  /** first line of the command, ≤200 chars */
+  preview: string;
+}
+
+/** Expanded row: three full-text sections + meta. */
+export interface PsOpFull {
+  id: number;
+  ts: string;
+  status: string;
+  exit_code: number | null;
+  duration_ms: number | null;
+  tool: string | null;
+  method: string;
+  stream: boolean;
+  stdout_truncated: boolean;
+  error: string | null;
+  command: string;
+  stdout: string;
+  stderr: string;
+  request_id: string | null;
+  client: string | null;
+}
+
+export interface PsOpsPage {
+  total: number;
+  rows: PsOpRow[];
+}

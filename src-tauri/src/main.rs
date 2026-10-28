@@ -3,6 +3,7 @@
 
 mod commands;
 mod config;
+mod psaudit;
 mod sandbox;
 mod services;
 mod sessions;
@@ -222,7 +223,9 @@ fn main() {
             commands::attach_session,
             commands::get_autostart,
             commands::set_autostart,
-            commands::disable_legacy_startup
+            commands::disable_legacy_startup,
+            commands::get_ps_ops,
+            commands::get_ps_op_detail
         ])
         // Red traffic-light / OS close → hide to tray; only tray Exit quits.
         .on_window_event(|window, event| {
@@ -336,9 +339,15 @@ fn main() {
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|_app, event| {
+        .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
-                // Reap sbx/taskkill children so nothing outlives the UI.
+                // Reap sbx/taskkill children so nothing outlives the UI;
+                // hostps powershell trees are tracked separately.
+                if let Some(st) = app.try_state::<Arc<AppState>>() {
+                    if let Some(ctx) = st.hostps.lock().unwrap().as_ref() {
+                        ctx.kill_in_flight();
+                    }
+                }
                 util::kill_all_children();
             }
         });

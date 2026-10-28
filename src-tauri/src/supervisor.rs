@@ -1,18 +1,31 @@
 //! Service supervision: start/stop/intent persistence + watchdog.
 //!
-//! Index convention everywhere: 0=pageant 1=bridge 2=notify.
+//! Index convention everywhere: 0=pageant 1=bridge 2=notify 3=hostps.
+//! hostps deviates on purpose: its listener lives for the WHOLE process
+//! (the access-disabled responder must never go quiet — plan r4.1), so
+//! Stop/Start flip an `enabled` mode instead of bind/unbind, and the
+//! watchdog revives its thread regardless of intent.
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use crate::services::{bridge, notify, pageant};
+use crate::services::{bridge, hostps, notify, pageant};
 use crate::state::AppState;
 use crate::util::Flag;
+
+pub const HOSTPS_RUNNING_SUB: &str =
+    "http://0.0.0.0:37022/mcp · Bearer (HKCU HOST_PS_KEY) · audit → ~/.pi-su/ps-audit.db";
+
+pub fn hostps_stopped_sub(port: u16) -> String {
+    format!(":{port} access-disabled — stopped from the UI, port stays held (agent gets DISABLED, not a connection error)")
+}
 
 pub fn start(st: &Arc<AppState>, id: &str) -> Result<(), String> {
     match id {
         "pageant" => start_pageant(st),
         "bridge" => start_bridge(st),
         "notify" => start_notify(st),
+        "hostps" => start_hostps(st),
         other => Err(format!("unknown service: {other}")),
     }
 }
@@ -27,6 +40,7 @@ pub fn stop(st: &Arc<AppState>, id: &str) -> Result<(), String> {
         }
         "bridge" => stop_listener(st, 1),
         "notify" => stop_listener(st, 2),
+        "hostps" => stop_hostps(st),
         other => Err(format!("unknown service: {other}")),
     }
 }
@@ -37,6 +51,7 @@ fn set_intent(st: &Arc<AppState>, id: &str, on: bool) {
         "pageant" => cfg.services.pageant = on,
         "bridge" => cfg.services.bridge = on,
         "notify" => cfg.services.notify = on,
+        "hostps" => cfg.services.hostps = on,
         _ => {}
     }
     let snapshot = cfg.clone();
@@ -72,7 +87,7 @@ fn stop_listener(st: &Arc<AppState>, idx: usize) -> Result<(), String> {
             );
         }
     }
-    let id = ["pageant", "bridge", "notify"][idx];
+    let id = ["pageant", "bridge", "notify", "hostps"][idx];
     st.set_service_state(idx, "stopped", None);
     set_intent(st, id, false);
     Ok(())
@@ -138,8 +153,80 @@ fn start_notify(st: &Arc<AppState>) -> Result<(), String> {
     Ok(())
 }
 
+// ── hostps: mode switch over an always-on listener ────────────────
+
+/// Ensure audit db + listener thread exist; idempotent. The thread is
+/// re-spawned by the watchdog whenever it dies, intent-independent (the
+/// disabled responder must never go silent). Returns Err only when the
+/// audit db or the port bind fails right now.
+pub fn hostps_ensure(st: &Arc<AppState>) -> Result<(), String> {
+    let ctx = {
+        let guard = st.hostps.lock().unwrap();
+        match guard.as_ref() {
+            Some(c) => c.clone(),
+            None => {
+                drop(guard);
+                let (port, sse, enabled) = {
+                    let cfg = st.cfg.lock().unwrap();
+                    (cfg.services.hostps_port, cfg.services.hostps_sse.clone(), cfg.services.hostps)
+                };
+                let audit = crate::psaudit::PsAudit::open()?;
+                let ctx = Arc::new(hostps::Ctx::new(audit, sse, port, enabled));
+                *st.hostps.lock().unwrap() = Some(ctx.clone());
+                ctx
+            }
+        }
+    };
+    let alive = {
+        let svcs = st.services.lock().unwrap();
+        matches!(&svcs[3].handle, Some(h) if !h.is_finished())
+    };
+    if !alive {
+        let listeners = hostps::bind(ctx.port)?;
+        let stop = Arc::new(Flag::new(true));
+        let stop2 = stop.clone();
+        let ctx2 = ctx.clone();
+        let handle = std::thread::spawn(move || hostps::run(listeners, ctx2, stop2));
+        let mut svcs = st.services.lock().unwrap();
+        svcs[3].stop = Some(stop);
+        svcs[3].handle = Some(handle);
+    }
+    let on = ctx.enabled.load(Ordering::Relaxed);
+    st.set_service_state(
+        3,
+        if on { "running" } else { "stopped" },
+        Some(if on { HOSTPS_RUNNING_SUB.into() } else { hostps_stopped_sub(ctx.port) }),
+    );
+    Ok(())
+}
+
+fn start_hostps(st: &Arc<AppState>) -> Result<(), String> {
+    hostps_ensure(st)?;
+    let ctx = st.hostps.lock().unwrap().clone().ok_or("hostps not initialized")?;
+    ctx.enabled.store(true, Ordering::Relaxed);
+    st.set_service_state(3, "running", Some(HOSTPS_RUNNING_SUB.into()));
+    set_intent(st, "hostps", true);
+    Ok(())
+}
+
+fn stop_hostps(st: &Arc<AppState>) -> Result<(), String> {
+    let ctx = st.hostps.lock().unwrap().clone().ok_or("hostps not initialized")?;
+    ctx.enabled.store(false, Ordering::Relaxed);
+    // In-flight host commands die with the mode switch; the listener stays.
+    ctx.kill_in_flight();
+    st.set_service_state(3, "stopped", Some(hostps_stopped_sub(ctx.port)));
+    set_intent(st, "hostps", false);
+    Ok(())
+}
+
 /// Bring up whatever the persisted intent asked for (fresh start = all on).
 pub fn start_saved(st: &Arc<AppState>) {
+    // hostps first: listener exists regardless of intent (disabled mode
+    // still answers); the intent only picks the initial mode.
+    if let Err(e) = hostps_ensure(st) {
+        eprintln!("[supervisor] hostps setup failed: {e}");
+        st.set_service_state(3, "failed", Some(e));
+    }
     let intent = {
         let cfg = st.cfg.lock().unwrap();
         (cfg.services.pageant, cfg.services.bridge, cfg.services.notify)
@@ -155,7 +242,8 @@ pub fn start_saved(st: &Arc<AppState>) {
 
 /// Watchdog (plan: crash → auto-restart, visible as failed→starting→running):
 /// every 3 s, dead listener threads flip to failed and are revived when the
-/// user's intent still says running.
+/// user's intent still says running. hostps revives REGARDLESS of intent
+/// (disabled responder must stay reachable).
 pub fn spawn_watchdog(st: &Arc<AppState>) {
     let st = st.clone();
     std::thread::spawn(move || loop {
@@ -191,6 +279,29 @@ pub fn spawn_watchdog(st: &Arc<AppState>) {
                     eprintln!("[supervisor] watchdog: restarting {id}");
                     let _ = start(&st, id);
                 }
+            }
+        }
+        // hostps listener thread: intent-independent revival
+        let hp_finished = {
+            let mut svcs = st.services.lock().unwrap();
+            match &mut svcs[3].handle {
+                Some(h) if h.is_finished() => {
+                    let h = svcs[3].handle.take();
+                    drop(svcs);
+                    if let Some(h) = h {
+                        let _ = h.join();
+                    }
+                    true
+                }
+                _ => false,
+            }
+        };
+        if hp_finished {
+            eprintln!("[supervisor] watchdog: hostps listener died — re-binding");
+            st.set_service_state(3, "failed", Some("listener thread exited — restarting".into()));
+            if let Err(e) = hostps_ensure(&st) {
+                eprintln!("[supervisor] hostps restart failed: {e}");
+                st.set_service_state(3, "failed", Some(e));
             }
         }
         // pageant: window probe (external process we do not own a handle to)

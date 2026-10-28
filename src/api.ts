@@ -1,5 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  PsOpFull,
+  PsOpsPage,
+  PsOpRow,
   RecreateState,
   SandboxInfo,
   ServiceId,
@@ -26,6 +29,51 @@ interface MockState {
   recreate: { active: boolean; tick: number; error: string | null };
   autostart: boolean;
   legacyDisabled: string[];
+  psops: PsOpFull[]; // newest first
+}
+
+// Deterministic ps_op_log fixtures for the PS Audit tab (mock mode).
+function mkPsOps(): PsOpFull[] {
+  const row = (
+    id: number,
+    ts: string,
+    status: string,
+    tool: string | null,
+    exit: number | null,
+    dur: number | null,
+    command: string,
+    stdout: string,
+    stderr: string,
+    error: string | null = null,
+    stream = false
+  ): PsOpFull => ({
+    id, ts, status, tool, exit_code: exit, duration_ms: dur, method: tool ? "tools-call" : status === "auth_failed" ? "auth" : "ping",
+    stream, stdout_truncated: false, error, command, stdout, stderr,
+    request_id: `req-${id.toString(16)}`, client: `172.2${id % 10}.0.${id}:5${id % 1000} pi/1.3.0`,
+  });
+  return [
+    row(101, "2026-10-26T09:41:02Z", "ok", "powershell", 0, 1234,
+      "Get-Process | Sort-Object WS -Descending | Select-Object -First 10 Name, WS",
+      "chrome chrome\nclaude node\nsvchost svchost", "", null, true),
+    row(100, "2026-10-26T09:38:57Z", "timeout", "powershell", null, 120000,
+      "iperf3 -s -D --logfile C:\\temp\\iperf.log ; while ($true) { Start-Sleep 5 }",
+      "iperf3: Server listening on 5201 port 5201 (TCP) · accepted 0 connections in 120 s",
+      "⚠ partial output — command tree killed on timeout (taskkill /T /F)",
+      "[HOST_PS_GATEWAY_TIMEOUT] command exceeded its timeout; partial output attached", true),
+    row(99, "2026-10-26T09:30:11Z", "auth_failed", null, null, 11,
+      "", "", "", "[HOST_PS_GATEWAY_AUTH] invalid token fp sbx-cs", false),
+    row(98, "2026-10-26T08:57:44Z", "ok", "powershell", 0, 380, "Get-Date",
+      "2026-10-26T08:57:44Z", "", null, false),
+    row(97, "2026-10-26T08:12:03Z", "client_disconnected", "powershell", null, 41000,
+      "cargo build --release 2>&1 | Tee-Object build.log ; git push origin main",
+      "   Compiling pi v0.1.0 (12/48)", "", "client disconnected mid-stream", true),
+    row(96, "2026-10-26T08:02:19Z", "exec_failed", "powershell", 1, 210,
+      "Remove-Item C:\\Windows\\Temp\\x -Recurse", "", "AccessDenied: C:\\Windows\\Temp\\x",
+      null, false),
+    row(95, "2026-10-26T07:55:00Z", "disabled", "powershell", null, 0,
+      "Invoke-WebRequest http://example.com", "", "", "[HOST_PS_GATEWAY_DISABLED]", false),
+    row(94, "2026-10-26T07:54:30Z", "ok", "health", null, 2, "", "", "", null, false),
+  ];
 }
 
 const MOCK: MockState = {
@@ -43,6 +91,12 @@ const MOCK: MockState = {
     notify: {
       name: "Notify Hub",
       subtitle: "http://0.0.0.0:60000/notify · Windows toast (reminder)",
+      state: "running",
+    },
+    hostps: {
+      name: "Host PowerShell MCP",
+      subtitle:
+        "http://0.0.0.0:37022/mcp · Bearer (HKCU HOST_PS_KEY) · audit → ~/.pi-su/ps-audit.db",
       state: "running",
     },
   },
@@ -65,6 +119,7 @@ const MOCK: MockState = {
   recreate: { active: false, tick: 0, error: null },
   autostart: true,
   legacyDisabled: [],
+  psops: mkPsOps(),
 };
 
 const RECREATE_STEPS = ["rm", "resolve latest kit", "run -d", "wait ready", "push tokens"];
@@ -76,6 +131,7 @@ declare global {
       setSandbox(state: SandboxInfo): void;
       setSessions(s: SessionsSnapshot): void;
       setServiceState(id: ServiceId, state: string): void;
+      setPsOps(rows: PsOpFull[]): void;
       reset(): void;
     };
   }
@@ -86,6 +142,9 @@ if (typeof window !== "undefined" && !isTauri()) {
     setSessions: (s) => (MOCK.sessions = s),
     setServiceState: (id, state) => {
       MOCK.services[id].state = state;
+    },
+    setPsOps: (rows) => {
+      MOCK.psops = [...rows].sort((a, b) => b.id - a.id);
     },
     reset: () => void location.reload(),
   };
@@ -183,4 +242,40 @@ export async function disableLegacyStartup(): Promise<string[]> {
   );
   MOCK.legacyDisabled = renamed;
   return renamed;
+}
+
+// ── PS Audit (ps_op_log) ────────────────────────────────────────────
+
+export async function getPsOps(q: string, page: number, pageSize: number): Promise<PsOpsPage> {
+  if (isTauri()) return invoke<PsOpsPage>("get_ps_ops", { q, page, pageSize });
+  await delay(60);
+  const needle = q.trim().toLowerCase();
+  const hit = (r: PsOpFull) =>
+    !needle ||
+    r.command.toLowerCase().includes(needle) ||
+    r.stdout.toLowerCase().includes(needle) ||
+    r.stderr.toLowerCase().includes(needle);
+  const rows = MOCK.psops.filter(hit);
+  const start = (Math.max(1, page) - 1) * pageSize;
+  return {
+    total: rows.length,
+    rows: rows.slice(start, start + pageSize).map((r) => ({
+      id: r.id,
+      ts: r.ts,
+      status: r.status,
+      exit_code: r.exit_code,
+      duration_ms: r.duration_ms,
+      tool: r.tool,
+      stream: r.stream,
+      stdout_truncated: r.stdout_truncated,
+      error: r.error,
+      preview: r.command.split("\n")[0] ?? "",
+    })),
+  };
+}
+
+export async function getPsOpDetail(id: number): Promise<PsOpFull | null> {
+  if (isTauri()) return invoke<PsOpFull | null>("get_ps_op_detail", { id });
+  await delay(40);
+  return MOCK.psops.find((r) => r.id === id) ?? null;
 }

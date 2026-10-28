@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="700" viewBox="0 0 1460 700" font-family="Lucida Grande, Segoe UI, Helvetica Neue, sans-serif">
+  <defs>
+    <linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/><stop offset="1" stop-color="#ececec"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfdfd"/><stop offset="1" stop-color="#d6d6d6"/>
+    </linearGradient>
+    <linearGradient id="btnBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ec1ff"/><stop offset="0.5" stop-color="#3876d6"/><stop offset="1" stop-color="#1e5fc0"/>
+    </linearGradient>
+    <filter id="winShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1460" height="700" fill="#b8bcc2"/>
+
+  <!-- ═══════════ PS Audit tab active — command operation records ═══════════ -->
+  <g filter="url(#winShadow)">
+    <rect x="36" y="28" width="648" height="640" rx="8" fill="#ececec" stroke="#9d9d9d"/>
+  </g>
+  <rect x="37" y="29" width="646" height="46" rx="8" fill="url(#titlebar)"/>
+  <text x="360" y="58" text-anchor="middle" font-size="13" font-weight="bold" fill="#4d4d4d">Pi Supervisor</text>
+  <circle cx="60" cy="52" r="7" fill="#ff5f57" stroke="#e0443e"/>
+  <circle cx="82" cy="52" r="7" fill="#febc2e" stroke="#d89e23"/>
+  <circle cx="104" cy="52" r="7" fill="#28c840" stroke="#1aab29"/>
+
+  <!-- tabs: PS Audit selected -->
+  <rect x="52" y="96" width="100" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="102" y="114" text-anchor="middle" font-size="11" fill="#4d4d4d">Sessions</text>
+  <rect x="156" y="96" width="148" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="230" y="114" text-anchor="middle" font-size="11" fill="#4d4d4d">Background Services</text>
+  <rect x="308" y="96" width="84" height="28" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="350" y="114" text-anchor="middle" font-size="11" fill="#4d4d4d">Sandbox</text>
+  <rect x="52" y="120" width="616" height="440" rx="6" fill="#ffffff" stroke="#c9c9c9"/>
+  <path d="M396 122 V94 Q396 90 400 90 H480 Q484 90 484 94 V122" fill="#ffffff" stroke="#c9c9c9"/>
+  <text x="440" y="112" text-anchor="middle" font-size="11" font-weight="bold" fill="#1d1d1f">PS Audit</text>
+
+  <!-- search box (top of the page) -->
+  <rect x="68" y="136" width="584" height="28" rx="14" fill="#f6f6f6" stroke="#9d9d9d"/>
+  <circle cx="84" cy="150" r="5.5" fill="none" stroke="#8e8e93" stroke-width="1.6"/>
+  <line x1="88" y1="154" x2="93" y2="159" stroke="#8e8e93" stroke-width="1.6"/>
+  <text x="102" y="154" font-size="11" fill="#8e8e93">Get-Process</text>
+  <text x="636" y="154" text-anchor="end" font-size="10" fill="#8e8e93">match: command / stdout / stderr · 300 ms debounce</text>
+
+  <!-- table header -->
+  <rect x="68" y="174" width="584" height="22" rx="0" fill="#f0f0f0"/>
+  <text x="78" y="189" font-size="10" font-weight="bold" fill="#5f5f64">Time (UTC)</text>
+  <text x="176" y="189" font-size="10" font-weight="bold" fill="#5f5f64">Status</text>
+  <text x="244" y="189" font-size="10" font-weight="bold" fill="#5f5f64">Exit</text>
+  <text x="288" y="189" font-size="10" font-weight="bold" fill="#5f5f64">Dur</text>
+  <text x="344" y="189" font-size="10" font-weight="bold" fill="#5f5f64">Command / Output preview · single line</text>
+  <line x1="68" y1="196" x2="652" y2="196" stroke="#c9c9c9"/>
+
+  <!-- row 1 — single line, width-adaptive truncation, orange … marker -->
+  <text x="78" y="216" font-size="10" fill="#1d1d1f">10-26 09:41:02</text>
+  <rect x="176" y="205" width="42" height="15" rx="7" fill="#28c840"/>
+  <text x="197" y="216" text-anchor="middle" font-size="9" fill="#ffffff">ok</text>
+  <text x="244" y="216" font-size="10" fill="#1d1d1f">0</text>
+  <text x="288" y="216" font-size="10" fill="#5f5f64">1.2s</text>
+  <text x="344" y="216" font-size="10" fill="#1d1d1f">Get-Process | Sort-Object WS -Descending | Select-Object</text>
+  <text x="636" y="216" font-size="10" font-weight="bold" fill="#ff9500">…</text>
+  <line x1="68" y1="228" x2="652" y2="228" stroke="#ececec"/>
+
+  <!-- row 2 — clicked / expanded: full COMMAND + STDOUT + STDERR pre-rendered -->
+  <text x="78" y="248" font-size="10" fill="#1d1d1f">10-26 09:38:57</text>
+  <rect x="176" y="237" width="70" height="15" rx="7" fill="#ff9500"/>
+  <text x="211" y="248" text-anchor="middle" font-size="9" fill="#ffffff">timeout</text>
+  <text x="244" y="248" font-size="10" fill="#8e8e93">—</text>
+  <text x="288" y="248" font-size="10" fill="#5f5f64">120s</text>
+  <text x="344" y="248" font-size="10" fill="#1d1d1f">▾ iperf3 -s -D --logfile C:\temp\iperf.log ; while ($true</text>
+  <text x="636" y="248" font-size="10" font-weight="bold" fill="#ff9500">…</text>
+  <rect x="80" y="256" width="572" height="104" rx="4" fill="#f6f6f6" stroke="#c9c9c9"/>
+  <text x="90" y="269" font-size="9" font-weight="bold" fill="#5f5f64">COMMAND (args_json.script · full text)</text>
+  <rect x="88" y="273" width="556" height="16" rx="3" fill="#ffffff" stroke="#e3e3e3"/>
+  <text x="94" y="284" font-size="9" fill="#1d1d1f" font-family="Consolas, monospace">iperf3 -s -D --logfile C:\temp\iperf.log ; while ($true) { Start-Sleep 5 }  # full, no truncation</text>
+  <text x="90" y="305" font-size="9" font-weight="bold" fill="#5f5f64">STDOUT (full · truncated at 1 MB mark)</text>
+  <rect x="88" y="309" width="556" height="16" rx="3" fill="#ffffff" stroke="#e3e3e3"/>
+  <text x="94" y="320" font-size="9" fill="#1d1d1f" font-family="Consolas, monospace">iperf3: Server listening on 5201 port 5201 (TCP) · accepted 0 connections in 120 s</text>
+  <text x="90" y="341" font-size="9" font-weight="bold" fill="#5f5f64">STDERR (full)</text>
+  <rect x="88" y="345" width="556" height="12" rx="3" fill="#ffffff" stroke="#e3e3e3"/>
+  <text x="94" y="354" font-size="9" fill="#c0392b" font-family="Consolas, monospace">⚠ partial output — command tree killed on timeout (taskkill /T /F)</text>
+  <line x1="68" y1="370" x2="652" y2="370" stroke="#ececec"/>
+
+  <!-- row 3 -->
+  <text x="78" y="390" font-size="10" fill="#1d1d1f">10-26 09:30:11</text>
+  <rect x="176" y="379" width="84" height="15" rx="7" fill="#ff3b30"/>
+  <text x="218" y="390" text-anchor="middle" font-size="9" fill="#ffffff">auth_failed</text>
+  <text x="288" y="390" font-size="10" fill="#5f5f64">0.01s</text>
+  <text x="344" y="390" font-size="10" fill="#8e8e93">— (no token / bad token · fp 9f2a1c…)</text>
+  <line x1="68" y1="402" x2="652" y2="402" stroke="#ececec"/>
+
+  <!-- row 4 -->
+  <text x="78" y="422" font-size="10" fill="#1d1d1f">10-26 08:57:44</text>
+  <rect x="176" y="411" width="42" height="15" rx="7" fill="#28c840"/>
+  <text x="197" y="422" text-anchor="middle" font-size="9" fill="#ffffff">ok</text>
+  <text x="244" y="422" font-size="10" fill="#1d1d1f">0</text>
+  <text x="288" y="422" font-size="10" fill="#5f5f64">0.4s</text>
+  <text x="344" y="422" font-size="10" fill="#1d1d1f">Get-Date · stdout: 2026-10-26T08:57:44Z  ⟵ matched via output</text>
+  <line x1="68" y1="434" x2="652" y2="434" stroke="#ececec"/>
+
+  <!-- row 5 — another width-truncated preview -->
+  <text x="78" y="454" font-size="10" fill="#1d1d1f">10-26 08:12:03</text>
+  <rect x="176" y="443" width="82" height="15" rx="7" fill="#8e8e93"/>
+  <text x="217" y="454" text-anchor="middle" font-size="9" fill="#ffffff">client_disc.</text>
+  <text x="288" y="454" font-size="10" fill="#5f5f64">41s</text>
+  <text x="344" y="454" font-size="10" fill="#1d1d1f">cargo build --release 2&gt;&amp;1 | Tee-Object build.log ; git</text>
+  <text x="622" y="454" font-size="10" font-weight="bold" fill="#ff9500">…</text>
+  <line x1="68" y1="466" x2="652" y2="466" stroke="#ececec"/>
+
+  <!-- row 6 (last — no bottom rule) -->
+  <text x="78" y="486" font-size="10" fill="#1d1d1f">10-26 08:02:19</text>
+  <rect x="176" y="475" width="72" height="15" rx="7" fill="#ff3b30"/>
+  <text x="212" y="486" text-anchor="middle" font-size="9" fill="#ffffff">exec_failed</text>
+  <text x="244" y="486" font-size="10" fill="#1d1d1f">1</text>
+  <text x="288" y="486" font-size="10" fill="#5f5f64">0.2s</text>
+  <text x="344" y="486" font-size="10" fill="#1d1d1f">Remove-Item C:\Windows\… · stderr: AccessDenied</text>
+
+  <!-- pagination footer -->
+  <line x1="68" y1="502" x2="652" y2="502" stroke="#c9c9c9"/>
+  <rect x="68" y="514" width="52" height="24" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="94" y="530" text-anchor="middle" font-size="11" fill="#4d4d4d">‹ Prev</text>
+  <rect x="126" y="514" width="26" height="24" rx="5" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="139" y="530" text-anchor="middle" font-size="11" fill="#ffffff">1</text>
+  <rect x="156" y="514" width="26" height="24" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="169" y="530" text-anchor="middle" font-size="11" fill="#4d4d4d">2</text>
+  <rect x="186" y="514" width="26" height="24" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="199" y="530" text-anchor="middle" font-size="11" fill="#4d4d4d">3</text>
+  <rect x="216" y="514" width="52" height="24" rx="5" fill="url(#btn)" stroke="#9d9d9d"/>
+  <text x="242" y="530" text-anchor="middle" font-size="11" fill="#4d4d4d">Next ›</text>
+  <text x="652" y="530" text-anchor="end" font-size="10" fill="#8e8e93">50 / page · total 1,284 · newest first (ts DESC)</text>
+
+  <!-- note inside the page -->
+  <text x="72" y="556" font-size="10" fill="#8e8e93">row click expands full-text pre-render: COMMAND / STDOUT / STDERR · orange "…" = width-truncated, hover for tooltip</text>
+
+  <text x="56" y="582" font-size="10" fill="#8e8e93">PS Audit tab — reads ps_op_log from ~/.pi-su/ps-audit.db directly (WAL, same process as the gateway)</text>
+
+  <text x="60" y="608" font-size="11" fill="#5f5f64">Startup: launch this app at logon (replaces legacy Startup entries)</text>
+  <rect x="608" y="594" width="52" height="22" rx="11" fill="url(#btnBlue)" stroke="#1e5fc0"/>
+  <text x="621" y="609" text-anchor="middle" font-size="9" font-weight="bold" fill="#ffffff" stroke="#1e5fc0" stroke-width="0.35">ON</text>
+  <circle cx="648" cy="605" r="9" fill="#fdfdfd" stroke="#9d9d9d"/>
+  <circle cx="648" cy="605" r="6" fill="url(#titlebar)"/>
+
+  <rect x="37" y="627" width="646" height="40" fill="url(#titlebar)"/>
+  <line x1="37" y1="627" x2="683" y2="627" stroke="#adadad"/>
+  <text x="60" y="651" font-size="11" fill="#5f5f64">PS Audit: 1,284 records · showing 1–50 · filter "Get-Process"</text>
+
+  <!-- ═══════════ Annotations ═══════════ -->
+  <g font-size="12" fill="#2b2b2b">
+    <text x="720" y="60" font-size="15" font-weight="bold">PS Audit 命令操作记录 tab（示意图）</text>
+    <text x="720" y="92">1. 顶部搜索框：对 args_json（命令文本）、stdout、stderr 做 LIKE 模糊匹配，</text>
+    <text x="740" y="110">300ms 防抖，命中数回显；清空即回到全量列表。</text>
+    <text x="720" y="144">2. 分页列表：默认 ORDER BY ts DESC, id DESC（操作记录时间降序），</text>
+    <text x="740" y="162">50 条/页，LIMIT/OFFSET；页码 + Prev/Next，右下角显示总数。</text>
+    <text x="720" y="196">3. Command·Output preview 列：单行显示（nowrap），随窗口宽度自适应</text>
+    <text x="740" y="214">截断；截断行末尾拼橙色 “…”（#ff9500，见图内行 1/2/5），未截断不拼。</text>
+    <text x="740" y="232">原生 text-overflow 省略号不能改色 → scrollWidth 溢出检测</text>
+    <text x="740" y="250">手动拼 span，ResizeObserver 随窗口缩放/翻页重算；hover 出 tooltip。</text>
+    <text x="720" y="284">4. 行点击展开（见图内行 2）：COMMAND（args_json 命令全文）、</text>
+    <text x="740" y="302">STDOUT、STDERR 三段全文预渲染（monospace &lt;pre&gt; 白底框），</text>
+    <text x="740" y="320">truncated 标记在段标题回显；另带 request_id / client / stream 元信息。</text>
+    <text x="720" y="354">5. 数据源：与网关同进程直读 ~/.pi-su/ps-audit.db（ps_op_log 表），</text>
+    <text x="740" y="372">经 Tauri 命令 get_ps_ops(q, page, page_size) → {total, rows[]}，</text>
+    <text x="740" y="390">展开段全文按需另走 get_ps_op_detail(id)，列表不带大字段。</text>
+    <text x="720" y="424">6. 列表每 5s 自动刷新当前页（搜索框聚焦或行展开时暂停轮询），</text>
+    <text x="740" y="442">新记录以行高亮提示；hostps 服务停止时列表仍可读。</text>
+    <text x="720" y="476">7. 状态 chip：ok 绿 · timeout 橙 · auth_failed/exec_failed 红 ·</text>
+    <text x="740" y="494">client_disconnected 灰 · started 蓝；auth_failed 只显 token 指纹。</text>
+  </g>
+</svg>
