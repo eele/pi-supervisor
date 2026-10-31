@@ -6,6 +6,9 @@
 //!   client → 32-byte token line + "\n", then OpenSSH agent frames
 //!   (uint32 BE length || payload), strictly one request per response.
 //! Token lives in ~/.ssh/agent-bridge-token and is re-read per connection.
+//! Frames pass through untranslated: the sandbox's Ubuntu OpenSSH and
+//! Pageant both speak PuTTY's agent numbering (identities 11/12, sign
+//! 13/14) — verified by wire capture from inside the sandbox.
 //!
 //! Pageant channel: the documented WM_COPYDATA agent protocol — a named
 //! file mapping (PageantRequest%08x) carries the framing; the mapping NAME
@@ -57,6 +60,13 @@ pub fn run(listeners: Vec<TcpListener>, stop: Arc<Flag>) {
             match l.accept() {
                 Ok((sock, _)) => {
                     busy = true;
+                    // Windows ACCEPTED sockets inherit the listener's
+                    // non-blocking mode. Flip back to blocking: otherwise
+                    // relay()'s next read hits WouldBlock the instant the
+                    // client pauses, takes the Err(_) exit, and drops the
+                    // socket with the just-written response still queued
+                    // (clients see WSAECONNABORTED instead of the reply).
+                    let _ = sock.set_nonblocking(false);
                     let tp = token_path();
                     let spawn = std::thread::Builder::new()
                         .stack_size(2 * 1024 * 1024)
@@ -135,6 +145,10 @@ fn relay(sock: &mut TcpStream) {
         if !read_exact_or_close(sock, &mut frame[4..]) {
             return;
         }
+        // No message-number translation: the sandbox's ssh/ssh-add are
+        // Ubuntu-patched OpenSSH that already speak PuTTY's numbering
+        // (wire capture: identities request = 11, answer = 12) — the
+        // same dialect Pageant speaks natively. Passthrough is exact.
         let resp = match pageant_request(&frame) {
             Ok(r) => r,
             Err(_) => vec![0, 0, 0, 1, 5], // SSH_AGENT_FAILURE
